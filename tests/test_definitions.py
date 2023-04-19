@@ -14,7 +14,12 @@ from proconip.definitions import (
     CATEGORY_CANISTER,
     CATEGORY_CONSUMPTION,
 )
-from .test_helper import BASE_URL, GET_STATE_CSV, USERNAME, PASSWORD
+from .helper import (
+    BASE_URL,
+    GET_STATE_CSV,
+    USERNAME,
+    PASSWORD,
+)
 
 
 class ConfigObjectTestCase(unittest.TestCase):
@@ -67,6 +72,7 @@ class GetStateDataTestCase(unittest.TestCase):
 
     def test_time(self):
         self.assertEqual("02:17", self.actual.time)
+        self.assertEqual(CATEGORY_TIME, self.actual._data_objects[0].category)
 
     def test_analog_objects(self):
         self.assertEqual(len(self.actual.analog_objects), 5)
