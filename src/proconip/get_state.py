@@ -1,3 +1,5 @@
+"""GetState class to get data from the GetState.csv interface."""
+
 from aiohttp import BasicAuth, ClientSession
 from yarl import URL
 
@@ -7,10 +9,11 @@ from .definitions import ConfigObject, GetStateData
 async def async_get_raw(client_session: ClientSession, config: ConfigObject) -> str:
     """Get raw data (csv string) from the GetState.csv interface."""
     url = URL(config.base_url).with_path("/GetState.csv")
-    result = await client_session.get(url, auth=BasicAuth(config.username, password=config.password))
+    result = await client_session.get(url,
+                                      auth=BasicAuth(config.username, password=config.password))
     if result.status == 200:
         return await result.text()
-    elif result.status in [401, 403]:
+    if result.status in [401, 403]:
         raise BadCredentialsException
 
 
@@ -23,14 +26,17 @@ async def async_get_structured(client_session: ClientSession, config: ConfigObje
 
 
 class GetState:
+    """GetState class to get data from the GetState.csv interface."""
     def __init__(self, client_session: ClientSession, config: ConfigObject):
         self.client_session = client_session
         self.config = config
 
     async def raw(self) -> str:
+        """Get raw data (csv string) from the GetState.csv interface."""
         return await async_get_raw(self.client_session, self.config)
 
     async def structured(self) -> GetStateData:
+        """Get structured data from the GetState.csv interface."""
         return await async_get_structured(self.client_session, self.config)
 
 

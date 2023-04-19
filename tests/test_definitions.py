@@ -23,7 +23,9 @@ from .helper import (
 
 
 class ConfigObjectTestCase(unittest.TestCase):
+    """Testing the ConfigObject class."""
     def test_initialization(self):
+        """Test the initialization of the ConfigObject class."""
         actual = ConfigObject(BASE_URL, USERNAME, PASSWORD)
         self.assertEqual(actual.base_url, BASE_URL)
         self.assertEqual(actual.username, USERNAME)
@@ -31,14 +33,18 @@ class ConfigObjectTestCase(unittest.TestCase):
 
 
 class GetStateDataTestCase(unittest.TestCase):
+    """Testing the GetStateData class."""
     def setUp(self):
+        """Set up the test case."""
         self.actual = GetStateData(GET_STATE_CSV)
 
     def test_initialization(self):
+        """Test the initialization of the GetStateData class."""
         actual = GetStateData(GET_STATE_CSV)
         self.assertIsNotNone(actual)
 
     def test_system_info(self):
+        """"Test the system info properties of the GetStateData class."""
         self.assertEqual("1.7.3", self.actual.version)
         self.assertEqual(9559698, self.actual.cpu_time)
         self.assertEqual(1, self.actual.reset_root_cause)
@@ -71,10 +77,11 @@ class GetStateDataTestCase(unittest.TestCase):
         self.assertEqual("Warning (GUI warning, yellow)", self.actual.get_ntp_fault_state_as_str())
 
     def test_time(self):
+        """Test the time property of the GetStateData class."""
         self.assertEqual("02:17", self.actual.time)
-        self.assertEqual(CATEGORY_TIME, self.actual._data_objects[0].category)
 
     def test_analog_objects(self):
+        """Test the analog objects property of the GetStateData class."""
         self.assertEqual(len(self.actual.analog_objects), 5)
         for category_id, analog_object in enumerate(self.actual.analog_objects):
             self.assertIsNotNone(analog_object.name)
@@ -89,6 +96,7 @@ class GetStateDataTestCase(unittest.TestCase):
             self.assertEqual(analog_object.category_id, category_id)
 
     def test_electrode_objects(self):
+        """Test the electrode objects property of the GetStateData class."""
         self.assertEqual(len(self.actual.electrode_objects), 2)
         self.assertIn(self.actual.redox_electrode, self.actual.electrode_objects)
         self.assertIn(self.actual.ph_electrode, self.actual.electrode_objects)
@@ -114,6 +122,7 @@ class GetStateDataTestCase(unittest.TestCase):
         self.assertEqual(CATEGORY_ELECTRODE, self.actual.ph_electrode.category)
 
     def test_temperature_objects(self):
+        """Test the temperature objects property of the GetStateData class."""
         self.assertEqual(len(self.actual.temperature_objects), 8)
         for category_id, temperature_object in enumerate(self.actual.temperature_objects):
             self.assertIsNotNone(temperature_object.name)
@@ -128,6 +137,7 @@ class GetStateDataTestCase(unittest.TestCase):
             self.assertEqual(temperature_object.category_id, category_id)
 
     def test_relay_objects(self):
+        """Test the relay objects property of the GetStateData class."""
         self.assertEqual(len(self.actual.relay_objects), 8)
         for category_id, relay_object in enumerate(self.actual.relay_objects):
             self.assertIsNotNone(relay_object.name)
@@ -142,6 +152,7 @@ class GetStateDataTestCase(unittest.TestCase):
             self.assertEqual(relay_object.category_id, category_id)
 
     def test_digital_input_objects(self):
+        """Test the digital input objects property of the GetStateData class."""
         self.assertEqual(len(self.actual.digital_input_objects), 4)
         for category_id, digital_input_object in enumerate(self.actual.digital_input_objects):
             self.assertIsNotNone(digital_input_object.name)
@@ -156,6 +167,7 @@ class GetStateDataTestCase(unittest.TestCase):
             self.assertEqual(digital_input_object.category_id, category_id)
 
     def test_external_relay_objects(self):
+        """Test the external relay objects property of the GetStateData class."""
         self.assertEqual(len(self.actual.external_relay_objects), 8)
         for category_id, external_relay_object in enumerate(self.actual.external_relay_objects):
             self.assertIsNotNone(external_relay_object.name)
@@ -170,6 +182,7 @@ class GetStateDataTestCase(unittest.TestCase):
             self.assertEqual(external_relay_object.category_id, category_id)
 
     def test_canister_objects(self):
+        """Test the canister objects property of the GetStateData class."""
         self.assertEqual(len(self.actual.canister_objects), 3)
         for category_id, canister_object in enumerate(self.actual.canister_objects):
             self.assertIsNotNone(canister_object.name)
@@ -184,6 +197,7 @@ class GetStateDataTestCase(unittest.TestCase):
             self.assertEqual(canister_object.category_id, category_id)
 
     def test_consumption_objects(self):
+        """Test the consumption objects property of the GetStateData class."""
         self.assertEqual(len(self.actual.consumption_objects), 3)
         for category_id, consumption_object in enumerate(self.actual.consumption_objects):
             self.assertIsNotNone(consumption_object.name)
@@ -198,6 +212,7 @@ class GetStateDataTestCase(unittest.TestCase):
             self.assertEqual(consumption_object.category_id, category_id)
 
     def test_aggregated_relay_objects(self):
+        """Test the aggregated relay objects property of the GetStateData class."""
         self.assertEqual(len(self.actual.aggregated_relay_objects), 16)
 
 

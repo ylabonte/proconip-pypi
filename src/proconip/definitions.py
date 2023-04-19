@@ -1,7 +1,8 @@
-"""Defines various data structures for use with and used by the GetState.csv and usercfg.cgi APIs."""
+"""Defines data structures for use with and used by the GetState.csv and usercfg.cgi APIs."""
 
 
 class ConfigObject:
+    """Configuration to be used with classes that interact with the pool controller."""
     def __init__(
         self,
         base_url: str,
@@ -38,15 +39,15 @@ class DataObject:
     _value: float
     _display_value: str
 
-    def __init__(self, column: int, name: str, unit: str, offset: float, gain: float, raw_value: float):
+    def __init__(self, column: int, name: str, unit: str, offset: float, gain: float, value: float):
         self._column = column
 
         self._name = name
         self._unit = unit
         self._offset = offset
         self._gain = gain
-        self._raw_value = raw_value
-        self._value = (raw_value - offset) * gain
+        self._raw_value = value
+        self._value = (value - offset) * gain
 
         if column == 0:
             self._category = CATEGORY_TIME
@@ -196,7 +197,8 @@ class GetStateData:
         self._data_raw_values = [float(raw) for raw in lines[line + 5].split(",")]
         self._data_values: dict[int, float] = {}
         for i, value in enumerate(self._data_raw_values):
-            self._data_values[i] = (float(value) - float(self._data_offsets[i])) * float(self._data_gain[i])
+            self._data_values[i] = (float(value) - float(self._data_offsets[i])) \
+                                   * float(self._data_gain[i])
 
         self._parse_system_info()
         self._parse()

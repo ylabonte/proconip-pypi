@@ -1,3 +1,5 @@
+"""Helper functions for tests."""
+
 from proconip.definitions import ConfigObject
 
 BASE_URL = "http://127.0.0.1"
@@ -14,4 +16,5 @@ h,mV,mV,Bar,ppm,C,mV,pH,C,C,C,C,C,C,C,C,--,--,--,--,--,--,--,--,cm/s,--,--,--,--
 
 
 def get_config_object():
+    """Return a ConfigObject with the default values."""
     return ConfigObject(BASE_URL, USERNAME, PASSWORD)
