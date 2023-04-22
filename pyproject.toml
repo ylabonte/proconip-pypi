@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "proconip"
+version = "0.0.1"
+authors = [
+  { name="Yannic Labonte", email="yannic.labonte@gmail.com" },
+]
+description = "Library for basic interaction with the Procon.IP pool controller unit."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/ylabonte/proconip-pypi"
+"Bug Tracker" = "https://github.com/ylabonte/proconip-pypi/issues"

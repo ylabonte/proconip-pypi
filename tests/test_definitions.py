@@ -4,7 +4,6 @@ import unittest
 from proconip.definitions import (
     ConfigObject,
     GetStateData,
-    CATEGORY_TIME,
     CATEGORY_ANALOG,
     CATEGORY_ELECTRODE,
     CATEGORY_TEMPERATURE,
