@@ -1,6 +1,8 @@
 """Defines data structures for use with and used by the GetState.csv and usercfg.cgi APIs."""
+import dataclasses
 
 
+@dataclasses.dataclass
 class ConfigObject:
     """Configuration to be used with classes that interact with the pool controller."""
     def __init__(
@@ -25,6 +27,7 @@ CATEGORY_CANISTER = "canister"
 CATEGORY_CONSUMPTION = "consumption"
 
 
+# pylint: disable=R0902
 class DataObject:
     """Represents a single data unit combining the lines 2, 3, 4 and 5 from raw data."""
 
@@ -39,6 +42,7 @@ class DataObject:
     _value: float
     _display_value: str
 
+    # pylint: disable=R0913
     def __init__(self, column: int, name: str, unit: str, offset: float, gain: float, value: float):
         self._column = column
 
@@ -102,42 +106,52 @@ class DataObject:
 
     @property
     def name(self) -> str:
+        """Name of the data object."""
         return self._name
 
     @property
     def unit(self) -> str:
+        """Unit of the data object."""
         return self._unit
 
     @property
     def offset(self) -> float:
+        """Offset of the data object (used to calculate the actual value)."""
         return self._offset
 
     @property
     def gain(self) -> float:
+        """Gain of the data object (used to calculate the actual value)."""
         return self._gain
 
     @property
     def raw_value(self) -> float:
+        """Raw value of the data object (as measured and received from the pool controller)."""
         return self._raw_value
 
     @property
     def value(self) -> float:
+        """Actual value of the data object (calculated from raw value, offset and gain)."""
         return self._value
 
     @property
     def display_value(self) -> str:
+        """Value of the data object formatted for display."""
         return self._display_value
 
     @property
     def column(self) -> int:
+        """Column of the data object in the raw data."""
         return self._column
 
     @property
     def category(self) -> str:
+        """Category of the data object."""
         return self._category
 
     @property
     def category_id(self) -> int:
+        """Category ID of the data object (counts from 0 for each category)."""
         return self._category_id
 
 
@@ -159,6 +173,7 @@ NTP_FAULT_STATE = {
 }
 
 
+# pylint: disable=R0904
 class GetStateData:
     """Structured representation of the data returned by the GetState.csv API."""
 
@@ -208,7 +223,8 @@ class GetStateData:
         return self._raw_data
 
     def _parse_system_info(self):
-        """Parse system information (1st line of the csv data) and populate the respective object's attributes."""
+        """Parse system information (1st line of the csv data) and populate the respective
+        object's attributes."""
         self._version = self._system_info[1]
         self._cpu_time = int(self._system_info[2])
         self._reset_root_cause = int(self._system_info[3])
@@ -256,17 +272,20 @@ class GetStateData:
 
     @property
     def ph_plus_dosage_relay_id(self) -> int:
-        """Returns the dosage relay number (equivalent to DataObject.category_id) for the PH+ dosage."""
+        """Returns the dosage relay number (equivalent to DataObject.category_id) for
+        the PH+ dosage."""
         return self._ph_plus_dosage_relay_id
 
     @property
     def ph_minus_dosage_relay_id(self) -> int:
-        """Returns the dosage relay number (equivalent to DataObject.category_id) for the PH- dosage."""
+        """Returns the dosage relay number (equivalent to DataObject.category_id) for
+        the PH- dosage."""
         return self._ph_minus_dosage_relay_id
 
     @property
     def chlorine_dosage_relay_id(self) -> int:
-        """Returns the dosage relay number (equivalent to DataObject.category_id) for the chlorine dosage."""
+        """Returns the dosage relay number (equivalent to DataObject.category_id) for
+        the chlorine dosage."""
         return self._chlorine_dosage_relay_id
 
     def is_chlorine_dosage_enabled(self) -> bool:
@@ -286,37 +305,27 @@ class GetStateData:
         return self._dosage_control & 4096 == 4096
 
     def is_dosage_enabled(self, data_entity) -> bool:
-        """Returns true if the dosage control is enabled for the given data entity, false otherwise."""
+        """Returns true if the dosage control is enabled for the given data entity,
+         false otherwise."""
         match data_entity.column:
-            case 36:
+            case 36 | 39:
                 return self.is_chlorine_dosage_enabled()
-            case 39:
-                return self.is_chlorine_dosage_enabled()
-            case 37:
+            case 37 | 40:
                 return self.is_ph_minus_dosage_enabled()
-            case 40:
-                return self.is_ph_minus_dosage_enabled()
-            case 38:
-                return self.is_ph_plus_dosage_enabled()
-            case 41:
+            case 38 | 41:
                 return self.is_ph_plus_dosage_enabled()
             case _:
                 return False
 
     def get_dosage_relay(self, data_entity) -> int:
-        """Returns the dosage relay number (equivalent to DataObject.category_id) for the given data entity."""
+        """Returns the dosage relay number (equivalent to DataObject.category_id) for
+        the given data entity."""
         match data_entity.column:
-            case 36:
+            case 36 | 39:
                 return self._chlorine_dosage_relay_id
-            case 39:
-                return self._chlorine_dosage_relay_id
-            case 37:
+            case 37 | 40:
                 return self._ph_minus_dosage_relay_id
-            case 40:
-                return self._ph_minus_dosage_relay_id
-            case 38:
-                return self._ph_plus_dosage_relay_id
-            case 41:
+            case 38 | 41:
                 return self._ph_plus_dosage_relay_id
             case _:
                 return False
@@ -331,54 +340,75 @@ class GetStateData:
         """Returns the NTP fault state as string."""
         if self._ntp_fault_state in NTP_FAULT_STATE:
             return NTP_FAULT_STATE[self._ntp_fault_state]
-        elif self._ntp_fault_state > 4:
+        if self._ntp_fault_state > 4:
             return NTP_FAULT_STATE[4]
-        elif self._ntp_fault_state > 2:
+        if self._ntp_fault_state > 2:
             return NTP_FAULT_STATE[2]
         return NTP_FAULT_STATE[0]
 
     def is_tcpip_boost_enabled(self) -> bool:
+        """Returns true if the TCP/IP boost is enabled, false otherwise."""
         return self._config_other_enable & 1 == 1
 
     def is_sd_card_enabled(self) -> bool:
+        """Returns true if the SD card is enabled, false otherwise."""
         return self._config_other_enable & 2 == 2
 
     def is_dmx_enabled(self) -> bool:
+        """Returns true if the DMX is enabled, false otherwise."""
         return self._config_other_enable & 4 == 4
 
     def is_avatar_enabled(self) -> bool:
+        """Returns true if the avatar is enabled, false otherwise."""
         return self._config_other_enable & 8 == 8
 
     def is_relay_extension_enabled(self) -> bool:
+        """Returns true if the relay extension is enabled, false otherwise."""
         return self._config_other_enable & 16 == 16
 
     def is_high_bus_load_enabled(self) -> bool:
+        """Returns true if high bus load is enabled, false otherwise."""
         return self._config_other_enable & 32 == 32
 
     def is_flow_sensor_enabled(self) -> bool:
+        """Returns true if the flow sensor is enabled, false otherwise."""
         return self._config_other_enable & 64 == 64
 
     def is_repeated_mails_enabled(self) -> bool:
+        """Returns true if repeated mails are enabled, false otherwise."""
         return self._config_other_enable & 128 == 128
 
     def is_dmx_extension_enabled(self) -> bool:
+        """Returns true if the DMX extension is enabled, false otherwise."""
         return self._config_other_enable & 256 == 256
 
     def _parse(self):
         """Parse the raw data and populate the object's attributes."""
         self._data_objects = []
         for column, name in enumerate(self._data_names):
-            self._data_objects.append(DataObject(column, name, self._data_units[column], self._data_offsets[column],
-                                                 self._data_gain[column], self._data_raw_values[column]))
+            self._data_objects.append(DataObject(column,
+                                                 name,
+                                                 self._data_units[column],
+                                                 self._data_offsets[column],
+                                                 self._data_gain[column],
+                                                 self._data_raw_values[column]))
 
-        self._analog_objects = [obj for obj in self._data_objects if obj.category == CATEGORY_ANALOG]
-        self._electrode_objects = [obj for obj in self._data_objects if obj.category == CATEGORY_ELECTRODE]
-        self._temperature_objects = [obj for obj in self._data_objects if obj.category == CATEGORY_TEMPERATURE]
-        self._relay_objects = [obj for obj in self._data_objects if obj.category == CATEGORY_RELAY]
-        self._digital_objects = [obj for obj in self._data_objects if obj.category == CATEGORY_DIGITAL_INPUT]
-        self._external_relay_objects = [obj for obj in self._data_objects if obj.category == CATEGORY_EXTERNAL_RELAY]
-        self._canister_objects = [obj for obj in self._data_objects if obj.category == CATEGORY_CANISTER]
-        self._consumption_objects = [obj for obj in self._data_objects if obj.category == CATEGORY_CONSUMPTION]
+        self._analog_objects = [obj for obj in self._data_objects
+                                if obj.category == CATEGORY_ANALOG]
+        self._electrode_objects = [obj for obj in self._data_objects
+                                   if obj.category == CATEGORY_ELECTRODE]
+        self._temperature_objects = [obj for obj in self._data_objects
+                                     if obj.category == CATEGORY_TEMPERATURE]
+        self._relay_objects = [obj for obj in self._data_objects
+                               if obj.category == CATEGORY_RELAY]
+        self._digital_objects = [obj for obj in self._data_objects
+                                 if obj.category == CATEGORY_DIGITAL_INPUT]
+        self._external_relay_objects = [obj for obj in self._data_objects
+                                        if obj.category == CATEGORY_EXTERNAL_RELAY]
+        self._canister_objects = [obj for obj in self._data_objects
+                                  if obj.category == CATEGORY_CANISTER]
+        self._consumption_objects = [obj for obj in self._data_objects
+                                     if obj.category == CATEGORY_CONSUMPTION]
 
     @property
     def analog_objects(self) -> list[DataObject]:
