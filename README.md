@@ -1,5 +1,8 @@
 # Python package for the ProCon.IP Pool Controller
 
+[![Pylint](https://github.com/ylabonte/proconip-pypi/actions/workflows/pylint.yml/badge.svg)](https://github.com/ylabonte/proconip-pypi/actions/workflows/pylint.yml)
+[![Unittest](https://github.com/ylabonte/proconip-pypi/actions/workflows/unittest.yml/badge.svg)](https://github.com/ylabonte/proconip-pypi/actions/workflows/unittest.yml)
+
 ## Overview
 
 * [Introduction (_What is this library for?_)](#introduction)
