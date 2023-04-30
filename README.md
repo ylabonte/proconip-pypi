@@ -28,6 +28,43 @@ Feel free to ask questions by using github's issues system, so others can take
 advantage, contribute and are able to find the answer if they have a similar 
 question. Thanks! :)
 
+## Installation
+
+This library is available on [PyPI](https://pypi.org/project/proconip/). So you 
+can easily install it with pip:
+```bash
+pip install proconip
+```
+or
+```bash
+python -m pip install proconip
+```
+In both cases you can add `--upgrade` to update to the latest version.
+
+## Usage
+
+```python
+import asyncio
+import aiohttp
+from proconip.definitions import ConfigObject
+from proconip.get_state import GetState
+
+
+async def testrun():
+    client_session = aiohttp.ClientSession()
+    config = ConfigObject("http://192.168.2.3", "admin", "admin")
+    controller = GetState(client_session, config)
+    data = await controller.structured()
+    print(data.redox_electrode.display_value)
+    print(data.ph_electrode.display_value)
+    print(data.temperature_objects[0].display_value)
+    await client_session.close()
+
+
+asyncio.run(testrun())
+
+```
+
 ## A brief description of the ProCon.IP pool controller
 
 ![Picture from pooldigital.de](https://www.pooldigital.de/shop/media/image/66/47/a5/ProConIP1_720x600.png)
@@ -37,7 +74,7 @@ home swimming pools. With its software switched relays, it can control
 multiple pumps (for the pool filter and different dosage aspects) either
 simply planned per time schedule or depending on a reading/value from one of
 its many input channels for measurements (eg. i/o flow sensors, Dallas 1-Wire
-termometers, redox and pH electrodes). At least there is also the option to
+thermometers, redox and pH electrodes). At least there is also the option to
 switch these relays on demand, which makes them also applicable for switching
 lights (or anything else you want) on/off.
 Not all of its functionality is reachable via API. In fact there is one
