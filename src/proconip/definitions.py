@@ -2,18 +2,8 @@
 import dataclasses
 
 
-@dataclasses.dataclass
-class ConfigObject:
-    """Configuration to be used with classes that interact with the pool controller."""
-    def __init__(
-        self,
-        base_url: str,
-        username: str,
-        password: str,
-    ):
-        self.base_url = base_url
-        self.username = username
-        self.password = password
+API_PATH_GET_STATE = "/GetState.csv"
+API_PATH_USRCFG = "/usrcfg.cgi"
 
 
 CATEGORY_TIME = "time"
@@ -27,7 +17,60 @@ CATEGORY_CANISTER = "canister"
 CATEGORY_CONSUMPTION = "consumption"
 
 
+RESET_ROOT_CAUSE = {
+    0: "n.a.",
+    1: "External reset",
+    2: "PowerUp reset",
+    4: "Brown out reset",
+    8: "Watchdog reset",
+    16: "SW reset",
+}
+
+NTP_FAULT_STATE = {
+    0: "n.a.",
+    1: "Logfile (GUI warning, green)",
+    2: "Warning (GUI warning, yellow)",
+    4: "Error (GUI warning, red)",
+    65536: "NTP available",
+}
+
+
+@dataclasses.dataclass
+class ConfigObject:
+    """Configuration to be used with classes that interact with the pool controller."""
+
+    def __init__(
+        self,
+        base_url: str,
+        username: str,
+        password: str,
+    ):
+        self.base_url = base_url
+        self.username = username
+        self.password = password
+
+    @staticmethod
+    def from_dict(data: dict[str, str]):
+        """Set attributes from a dictionary."""
+        if "base_url" not in data:
+            raise ValueError("base_url is required")
+        if "username" not in data:
+            raise ValueError("username is required")
+        if "password" not in data:
+            raise ValueError("password is required")
+        return ConfigObject(data["base_url"], data["username"], data["password"])
+
+    def to_dict(self):
+        """Return a dictionary representation of the object."""
+        return {
+            "base_url": self.base_url,
+            "username": self.username,
+            "password": self.password,
+        }
+
+
 # pylint: disable=R0902
+@dataclasses.dataclass
 class DataObject:
     """Represents a single data unit combining the lines 2, 3, 4 and 5 from raw data."""
 
@@ -155,25 +198,47 @@ class DataObject:
         return self._category_id
 
 
-RESET_ROOT_CAUSE = {
-    0: "n.a.",
-    1: "External reset",
-    2: "PowerUp reset",
-    4: "Brown out reset",
-    8: "Watchdog reset",
-    16: "SW reset",
-}
+@dataclasses.dataclass
+class Relay(DataObject):
+    """Represents a relay."""
 
-NTP_FAULT_STATE = {
-    0: "n.a.",
-    1: "Logfile (GUI warning, green)",
-    2: "Warning (GUI warning, yellow)",
-    4: "Error (GUI warning, red)",
-    65536: "NTP available",
-}
+    def __init__(self, data_object: DataObject):
+        super().__init__(
+            data_object.column,
+            data_object.name,
+            data_object.unit,
+            data_object.offset,
+            data_object.gain,
+            data_object.value)
+
+    def __str__(self):
+        return f"{self._name}: {self._display_value}"
+
+    def is_on(self) -> bool:
+        """Returns whether the relay is on."""
+        return int(self._value) & 1 == 1
+
+    def is_off(self) -> bool:
+        """Returns whether the relay is off."""
+        return not self.is_on()
+
+    def is_manual_mode(self) -> bool:
+        """Returns whether the relay is in manual mode."""
+        return int(self._value) & 2 == 2
+
+    def is_auto_mode(self) -> bool:
+        """Returns whether the relay is in manual mode."""
+        return not self.is_manual_mode()
+
+    def get_bit_mask(self) -> int:
+        """Returns the bit mask of the relay."""
+        if self._category == CATEGORY_EXTERNAL_RELAY:
+            return 1 << (self._category_id + 8)
+        return 1 << self._category_id
 
 
 # pylint: disable=R0904
+@dataclasses.dataclass
 class GetStateData:
     """Structured representation of the data returned by the GetState.csv API."""
 
@@ -430,6 +495,10 @@ class GetStateData:
         """Returns a list of DataObjects of the relay category."""
         return self._relay_objects
 
+    def relays(self) -> list[Relay]:
+        """Returns relays as a list of Relay object instances."""
+        return [Relay(relay_object) for relay_object in self._relay_objects]
+
     @property
     def digital_input_objects(self) -> list[DataObject]:
         """Returns a list of DataObjects of the digital input category."""
@@ -439,6 +508,10 @@ class GetStateData:
     def external_relay_objects(self) -> list[DataObject]:
         """Returns a list of DataObjects of the external relay category."""
         return self._external_relay_objects
+
+    def external_relays(self) -> list[Relay]:
+        """Returns external relays as a list of Relay object instances."""
+        return [Relay(external_relay_object) for external_relay_object in self._external_relay_objects]
 
     @property
     def canister_objects(self) -> list[DataObject]:
@@ -509,3 +582,18 @@ class GetStateData:
     def ph_plus_dosage_relay(self) -> DataObject:
         """Returns the DataObject of the pH plus dosage relay."""
         return self.aggregated_relay_objects[self._ph_plus_dosage_relay_id]
+
+    def determine_overall_relay_bit_state(self) -> [int, int]:
+        """Determine the overall relay bit state from the current state."""
+        relays = self.relays()
+        bit_state = [255, 0]
+        if self.is_relay_extension_enabled():
+            relays.extend(self.external_relays())
+            bit_state[0] = 65535
+        for relay in relays:
+            relay_bit_mask = relay.get_bit_mask()
+            if relay.is_on():
+                bit_state[1] |= relay_bit_mask
+            else:
+                bit_state[0] &= ~relay_bit_mask
+        return bit_state

@@ -3,11 +3,16 @@
 [![Pylint](https://github.com/ylabonte/proconip-pypi/actions/workflows/pylint.yml/badge.svg)](https://github.com/ylabonte/proconip-pypi/actions/workflows/pylint.yml)
 [![Unittest](https://github.com/ylabonte/proconip-pypi/actions/workflows/unittest.yml/badge.svg)](https://github.com/ylabonte/proconip-pypi/actions/workflows/unittest.yml)
 
+[<img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 144px !important;" >](https://www.buymeacoffee.com/ylabonte)
+
 ## Overview
 
 * [Introduction (_What is this library for?_)](#introduction)
+* [Installation](#installation)
+* [Usage](#usage)
 * [A brief description of the ProCon.IP pool controller](#a-brief-description-of-the-proconip-pool-controller)
 * [Disclaimer](#disclaimer)
+
 
 ---
 
@@ -47,7 +52,7 @@ In both cases you can add `--upgrade` to update to the latest version.
 import asyncio
 import aiohttp
 from proconip.definitions import ConfigObject
-from proconip.get_state import GetState
+from proconip.api import GetState
 
 
 async def testrun():
