@@ -18,7 +18,7 @@
 
 ## Introduction
 
-The name of this library refers to the [ProCon.IP pool controller](#what-is-procon-ip).
+The name of this library refers to the [ProCon.IP pool controller](#a-brief-description-of-the-proconip-pool-controller).
 It is somehow a port of my [procon-ip](https://github.com/ylabonte/procon-ip) 
 TypeScript library (available as [NPM Package](https://www.npmjs.com/package/procon-ip)). 
 As the TypeScript library was a byproduct of my ioBroker adapter for the pool 
