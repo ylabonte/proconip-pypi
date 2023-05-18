@@ -1,4 +1,5 @@
 """Testing data structures and helper classes from definitions module."""
+
 import unittest
 
 from proconip.definitions import (
@@ -13,6 +14,7 @@ from proconip.definitions import (
     CATEGORY_CANISTER,
     CATEGORY_CONSUMPTION,
 )
+
 from .helper import (
     BASE_URL,
     GET_STATE_CSV,
