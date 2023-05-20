@@ -58,7 +58,7 @@ async def async_switch_on(
     bit_state[1] |= relay_bit_mask
     url = URL(config.base_url).with_path(API_PATH_USRCFG)
     result = await client_session.post(url,
-                                       data=f"ENA={bit_state}&MANUAL=1",
+                                       data=f"ENA={bit_state[0]},{bit_state[1]}&MANUAL=1",
                                        auth=BasicAuth(config.username,
                                                       password=config.password))
     if result.status != 200:
@@ -79,7 +79,7 @@ async def async_switch_off(
     bit_state[1] &= ~relay_bit_mask
     url = URL(config.base_url).with_path(API_PATH_USRCFG)
     result = await client_session.post(url,
-                                       data=f"ENA={bit_state}&MANUAL=1",
+                                       data=f"ENA={bit_state[0]},{bit_state[1]}&MANUAL=1",
                                        auth=BasicAuth(config.username,
                                                       password=config.password))
     if result.status != 200:
@@ -100,7 +100,7 @@ async def async_set_auto_mode(
     bit_state[1] &= ~relay_bit_mask
     url = URL(config.base_url).with_path(API_PATH_USRCFG)
     result = await client_session.post(url,
-                                       data=f"ENA={bit_state}&MANUAL=1",
+                                       data=f"ENA={bit_state[0]},{bit_state[1]}&MANUAL=1",
                                        auth=BasicAuth(config.username,
                                                       password=config.password))
     if result.status != 200:

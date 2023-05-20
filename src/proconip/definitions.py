@@ -598,8 +598,8 @@ class GetStateData:
             bit_state[0] = 65535
         for relay in relays:
             relay_bit_mask = relay.get_bit_mask()
+            if relay.is_auto_mode():
+                bit_state[0] &= ~relay_bit_mask
             if relay.is_on():
                 bit_state[1] |= relay_bit_mask
-            else:
-                bit_state[0] &= ~relay_bit_mask
         return bit_state

@@ -52,17 +52,37 @@ In both cases you can add `--upgrade` to update to the latest version.
 import asyncio
 import aiohttp
 from proconip.definitions import ConfigObject
-from proconip.api import GetState
+from proconip.api import GetState, RelaySwitch
 
 
 async def testrun():
     client_session = aiohttp.ClientSession()
     config = ConfigObject("http://192.168.2.3", "admin", "admin")
-    controller = GetState(client_session, config)
-    data = await controller.structured()
-    print(data.redox_electrode.display_value)
-    print(data.ph_electrode.display_value)
-    print(data.temperature_objects[0].display_value)
+    get_state = GetState(client_session, config)
+    data = await get_state.structured()
+    print(f"Redox (Chlor): {data.redox_electrode.display_value}")
+    print(f"pH: {data.ph_electrode.display_value}")
+    for relay in (relay for relay in data.relays() if relay.name != "n.a."):
+        print(f"{relay.name}: {relay.display_value}")
+    for temp in (temp for temp in data.temperature_objects if temp.name != "n.a."):
+        print(f"{temp.name}: {temp.display_value}")
+    
+    relay_switch = RelaySwitch(client_session, config)
+    print(f"Relay no. 2: {data.get_relay(1).display_value}")
+    print(f"Relay no. 3: {data.get_relay(2).display_value}")
+    await relay_switch.set_auto_mode(data, 1)
+    data = await get_state.structured()
+    print(f"Relay no. 2: {data.get_relay(1).display_value}")
+    await relay_switch.set_on(data, 2)
+    data = await get_state.structured()
+    print(f"Relay no. 3: {data.get_relay(2).display_value}")
+    await relay_switch.set_off(data, 1)
+    data = await get_state.structured()
+    print(f"Relay no. 2: {data.get_relay(1).display_value}")
+    await relay_switch.set_off(data, 2)
+    data = await get_state.structured()
+    print(f"Relay no. 3: {data.get_relay(2).display_value}")
+    
     await client_session.close()
 
 
