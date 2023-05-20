@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "proconip"
-version = "0.0.2"
+version = "1.0.0"
 authors = [
   { name="Yannic Labonte", email="yannic.labonte@gmail.com" },
 ]
