@@ -6,14 +6,14 @@
 
 ![PyPI](https://img.shields.io/pypi/v/proconip?label=Current%20Release)
 
-[<img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 144px !important;" >](https://www.buymeacoffee.com/ylabonte)
-
 ## Overview
 
 * [Introduction (_What is this library for?_)](#introduction)
 * [Installation](#installation)
 * [Usage](#usage)
 * [A brief description of the ProCon.IP pool controller](#a-brief-description-of-the-proconip-pool-controller)
+* [Get support](#get-support)
+* [Give support](#give-support)
 * [Disclaimer](#disclaimer)
 
 
@@ -119,9 +119,22 @@ haven't found an english documentation/information so far):
 * [pooldigital.de webshop](https://www.pooldigital.de/shop/poolsteuerungen/procon.ip/35/procon.ip-webbasierte-poolsteuerung-/-dosieranlage)
 * [pooldigital.de forum](http://forum.pooldigital.de/)
 
+## Get support
+
+Need help? Please use the [github issues system](https://github.com/ylabonte/proconip-pypi/issues)
+to ask your question. This way others can contribute or at least take advantage of the final solution.
+
+## Give support
+
+If you want to support this project or my work in general, you can do so without having any coding abilities.
+Because programmers are described as machines that convert coffee (their habitual input) into code (their habitual
+output), there is a really simple way to support me:
+
+[<img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 144px !important;" >](https://www.buymeacoffee.com/ylabonte)
+
 ## Disclaimer
 
-**Just to be clear: I have nothing to do with the development, sellings,
-marketing or support of the pool controller unit itself. I just developed a
-solution to integrate such with [ioBroker](https://github.com/ylabonte/ioBroker.procon-ip)
-and now decoupled the library part to make it cleaner.**
+**Just to be clear: I have nothing to do with the development, selling, marketing or support of the pool controller
+unit itself.  
+I just developed small TypeScript/JS and Python libraries as by-products of an ioBroker adapter and a Home Assistant
+integration for integrating the pool controller unit with common smart home solutions.**
