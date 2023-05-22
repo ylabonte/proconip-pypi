@@ -10,7 +10,9 @@
 
 * [Introduction (_What is this library for?_)](#introduction)
 * [Installation](#installation)
-* [Usage](#usage)
+* [Usage](#usage-examples)
+  * [Reading the current state](#reading-the-current-state)
+  * [Switching relays](#switching-relays)
 * [A brief description of the ProCon.IP pool controller](#a-brief-description-of-the-proconip-pool-controller)
 * [Get support](#get-support)
 * [Give support](#give-support)
@@ -49,7 +51,35 @@ python -m pip install proconip
 ```
 In both cases you can add `--upgrade` to update to the latest version.
 
-## Usage
+## Usage examples
+
+### Reading the current state
+
+```python
+import asyncio
+import aiohttp
+from proconip.definitions import ConfigObject
+from proconip.api import GetState
+
+
+async def reading_data_example():
+    client_session = aiohttp.ClientSession()
+    config = ConfigObject("http://192.168.2.3", "admin", "admin")
+    get_state_api = GetState(client_session, config)
+    data = await get_state_api.async_get_state()
+    await client_session.close()
+    print(f"Redox (Chlor): {data.redox_electrode.display_value}")
+    print(f"pH: {data.ph_electrode.display_value}")
+    for relay in (relay for relay in data.relays() if relay.name != "n.a."):
+        print(f"{relay.name}: {relay.display_value}")
+    for temp in (temp for temp in data.temperature_objects if temp.name != "n.a."):
+        print(f"{temp.name}: {temp.display_value}")
+
+
+asyncio.run(reading_data_example())
+```
+
+### Switching relays
 
 ```python
 import asyncio
@@ -58,39 +88,30 @@ from proconip.definitions import ConfigObject
 from proconip.api import GetState, RelaySwitch
 
 
-async def testrun():
+async def relay_switching_example():
     client_session = aiohttp.ClientSession()
     config = ConfigObject("http://192.168.2.3", "admin", "admin")
-    get_state = GetState(client_session, config)
-    data = await get_state.structured()
-    print(f"Redox (Chlor): {data.redox_electrode.display_value}")
-    print(f"pH: {data.ph_electrode.display_value}")
-    for relay in (relay for relay in data.relays() if relay.name != "n.a."):
-        print(f"{relay.name}: {relay.display_value}")
-    for temp in (temp for temp in data.temperature_objects if temp.name != "n.a."):
-        print(f"{temp.name}: {temp.display_value}")
-    
+    get_state_api = GetState(client_session, config)
     relay_switch = RelaySwitch(client_session, config)
+    data = await get_state_api.async_get_state()
     print(f"Relay no. 2: {data.get_relay(1).display_value}")
     print(f"Relay no. 3: {data.get_relay(2).display_value}")
-    await relay_switch.set_auto_mode(data, 1)
-    data = await get_state.structured()
+    await relay_switch.async_set_auto_mode(data, 1)
+    data = await get_state_api.async_get_state()
     print(f"Relay no. 2: {data.get_relay(1).display_value}")
-    await relay_switch.set_on(data, 2)
-    data = await get_state.structured()
+    await relay_switch.async_switch_on(data, 2)
+    data = await get_state_api.async_get_state()
     print(f"Relay no. 3: {data.get_relay(2).display_value}")
-    await relay_switch.set_off(data, 1)
-    data = await get_state.structured()
+    await relay_switch.async_switch_off(data, 1)
+    data = await get_state_api.async_get_state()
     print(f"Relay no. 2: {data.get_relay(1).display_value}")
-    await relay_switch.set_off(data, 2)
-    data = await get_state.structured()
+    await relay_switch.async_switch_off(data, 2)
+    data = await get_state_api.async_get_state()
     print(f"Relay no. 3: {data.get_relay(2).display_value}")
-    
     await client_session.close()
 
 
-asyncio.run(testrun())
-
+asyncio.run(relay_switching_example())
 ```
 
 ## A brief description of the ProCon.IP pool controller

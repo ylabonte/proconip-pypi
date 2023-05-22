@@ -37,11 +37,11 @@ class GetState:
         self.client_session = client_session
         self.config = config
 
-    async def raw(self) -> str:
+    async def async_get_raw_state(self) -> str:
         """Get raw data (csv string) from the GetState.csv interface."""
         return await async_get_raw_state(self.client_session, self.config)
 
-    async def structured(self) -> GetStateData:
+    async def async_get_state(self) -> GetStateData:
         """Get structured data from the GetState.csv interface."""
         return await async_get_state(self.client_session, self.config)
 
@@ -93,7 +93,7 @@ async def async_set_auto_mode(
         config: ConfigObject,
         current_state: GetStateData,
         relay: Relay) -> None:
-    """Switch on a relay using the usrcfg.cgi interface."""
+    """Switch a relay to auto mode using the usrcfg.cgi interface."""
     bit_state = current_state.determine_overall_relay_bit_state()
     relay_bit_mask = relay.get_bit_mask()
     bit_state[0] &= ~relay_bit_mask
@@ -115,21 +115,21 @@ class RelaySwitch:
         self.client_session = client_session
         self.config = config
 
-    async def set_on(self, current_state: GetStateData, relay_id: int) -> None:
+    async def async_switch_on(self, current_state: GetStateData, relay_id: int) -> None:
         """Set relay with given id to manual on."""
         await async_switch_on(self.client_session,
                               self.config,
                               current_state,
                               current_state.get_relay(relay_id))
 
-    async def set_off(self, current_state: GetStateData, relay_id: int) -> None:
+    async def async_switch_off(self, current_state: GetStateData, relay_id: int) -> None:
         """Set relay with given id to manual off."""
         await async_switch_off(self.client_session,
                                self.config,
                                current_state,
                                current_state.get_relay(relay_id))
 
-    async def set_auto_mode(self, current_state: GetStateData, relay_id: int) -> None:
+    async def async_set_auto_mode(self, current_state: GetStateData, relay_id: int) -> None:
         """Set relay with given id to use auto mode."""
         await async_set_auto_mode(self.client_session,
                                   self.config,
