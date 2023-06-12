@@ -114,6 +114,30 @@ async def relay_switching_example():
 asyncio.run(relay_switching_example())
 ```
 
+### Starting manual dosage
+
+Manual dosage depends on the same factors as if started from the web interface
+of the pool control itself. 
+
+```python
+import asyncio
+import aiohttp
+from proconip.definitions import ConfigObject
+from proconip.api import DosageControl
+
+
+async def manual_dosage_example():
+    client_session = aiohttp.ClientSession()
+    config = ConfigObject("http://192.168.2.3", "admin", "admin")
+    dosage_control = DosageControl(client_session, config)
+    await dosage_control.async_chlorine_dosage(3600) # start for 1 hour
+    await dosage_control.async_ph_minus_dosage(60) # start for 1 minute
+    await client_session.close()
+
+
+asyncio.run(reading_data_example())
+```
+
 ## A brief description of the ProCon.IP pool controller
 
 ![Picture from pooldigital.de](https://www.pooldigital.de/shop/media/image/66/47/a5/ProConIP1_720x600.png)
