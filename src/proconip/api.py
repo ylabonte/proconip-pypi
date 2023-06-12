@@ -11,6 +11,7 @@ from .definitions import (
     DosageTarget,
     GetStateData,
     Relay,
+    BadRelayException
 )
 
 
@@ -54,6 +55,8 @@ async def async_switch_on(
         current_state: GetStateData,
         relay: Relay) -> None:
     """Switch on a relay using the usrcfg.cgi interface."""
+    if current_state.is_dosage_relay(relay):
+        raise BadRelayException
     bit_state = current_state.determine_overall_relay_bit_state()
     relay_bit_mask = relay.get_bit_mask()
     bit_state[0] |= relay_bit_mask

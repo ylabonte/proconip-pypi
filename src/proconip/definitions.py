@@ -223,6 +223,12 @@ class Relay(DataObject):
     def __str__(self):
         return f"{self._name}: {self._display_value}"
 
+    @property
+    def relay_id(self) -> int:
+        """Returns the aggregated relays id (eg. 8 for the first external relay)."""
+        offset = 8 if self.category == CATEGORY_EXTERNAL_RELAY else 0
+        return self.category_id + offset
+
     def is_on(self) -> bool:
         """Returns whether the relay is on."""
         return int(self._value) & 1 == 1
@@ -379,8 +385,8 @@ class GetStateData:
         return self._dosage_control & 4096 == 4096
 
     def is_dosage_enabled(self, data_entity) -> bool:
-        """Returns true if the dosage control is enabled for the given data entity,
-         false otherwise."""
+        """Returns true if the dosage control is enabled for the given data entity (canister or
+        consumption DataObject), false otherwise."""
         match data_entity.column:
             case 36 | 39:
                 return self.is_chlorine_dosage_enabled()
@@ -392,8 +398,8 @@ class GetStateData:
                 return False
 
     def get_dosage_relay(self, data_entity) -> int:
-        """Returns the dosage relay number (equivalent to DataObject.category_id) for
-        the given data entity."""
+        """Returns the dosage relay index (i in `GetStateData.aggregated_relay_objects[i]`) for
+        the given data entity (canister or consumption DataObject)."""
         match data_entity.column:
             case 36 | 39:
                 return self._chlorine_dosage_relay_id
@@ -403,6 +409,28 @@ class GetStateData:
                 return self._ph_plus_dosage_relay_id
             case _:
                 return False
+
+    def is_dosage_relay(self,
+                        relay_object: Relay = None,
+                        data_object: DataObject = None,
+                        relay_id: int = None) -> bool:
+        """Returns true if the given relay_object OR data_object OR column refers to a dosage
+        control relay."""
+        dosage_control_relays = [
+            self._chlorine_dosage_relay_id,
+            self._ph_minus_dosage_relay_id,
+            self._ph_plus_dosage_relay_id,
+        ]
+        if relay_object is not None:
+            return relay_object.relay_id in dosage_control_relays
+        if data_object is not None:
+            if data_object.category not in (CATEGORY_RELAY, CATEGORY_EXTERNAL_RELAY):
+                raise BadRelayException
+            offset = 8 if data_object.category == CATEGORY_EXTERNAL_RELAY else 0
+            return data_object.category_id + offset in dosage_control_relays
+        if relay_id is not None:
+            return relay_id in dosage_control_relays
+        return False
 
     def get_reset_root_cause_as_str(self) -> str:
         """Returns the reason for the last reset of the controller as string."""
@@ -612,3 +640,6 @@ class GetStateData:
             if relay.is_on():
                 bit_state[1] |= relay_bit_mask
         return bit_state
+
+class BadRelayException(Exception):
+    """Exception to raise when an invalid relay was given as parameter."""
