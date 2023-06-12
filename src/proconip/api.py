@@ -67,7 +67,7 @@ async def async_switch_on(
                                        auth=BasicAuth(config.username,
                                                       password=config.password))
     if result.status != 200:
-        raise BasStatusCodeException(f"Unexpected status code: {result.status}")
+        raise BadStatusCodeException(f"Unexpected status code: {result.status}")
     if result.status in [401, 403]:
         raise BadCredentialsException
 
@@ -88,7 +88,7 @@ async def async_switch_off(
                                        auth=BasicAuth(config.username,
                                                       password=config.password))
     if result.status != 200:
-        raise BasStatusCodeException(f"Unexpected status code: {result.status}")
+        raise BadStatusCodeException(f"Unexpected status code: {result.status}")
     if result.status in [401, 403]:
         raise BadCredentialsException
 
@@ -109,7 +109,7 @@ async def async_set_auto_mode(
                                        auth=BasicAuth(config.username,
                                                       password=config.password))
     if result.status != 200:
-        raise BasStatusCodeException(f"Unexpected status code: {result.status}")
+        raise BadStatusCodeException(f"Unexpected status code: {result.status}")
     if result.status in [401, 403]:
         raise BadCredentialsException
 
@@ -154,7 +154,7 @@ async def async_start_dosage(
     result = await client_session.get(url, auth=BasicAuth(config.username,
                                                           password=config.password))
     if result.status != 200:
-        raise BasStatusCodeException(f"Unexpected status code: {result.status}")
+        raise BadStatusCodeException(f"Unexpected status code: {result.status}")
     if result.status in [401, 403]:
         raise BadCredentialsException
 
@@ -190,5 +190,6 @@ class DosageControl:
 class BadCredentialsException(Exception):
     """Exception to raise when we get an 401 Unauthorized or 403 Forbidden response."""
 
-class BasStatusCodeException(Exception):
+
+class BadStatusCodeException(Exception):
     """Exception to raise when we get an unknown response code."""
