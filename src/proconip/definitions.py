@@ -1,9 +1,11 @@
 """Defines data structures for use with and used by the GetState.csv and usercfg.cgi APIs."""
 import dataclasses
+from enum import IntEnum
 
 
 API_PATH_GET_STATE = "/GetState.csv"
 API_PATH_USRCFG = "/usrcfg.cgi"
+API_PATH_COMMAND = "/Command.htm"
 
 
 CATEGORY_TIME = "time"
@@ -33,6 +35,13 @@ NTP_FAULT_STATE = {
     4: "Error (GUI warning, red)",
     65536: "NTP available",
 }
+
+
+class DosageTarget(IntEnum):
+    """Helper enum for async_start_dosage."""
+    CHLORINE: 0
+    PH_MINUS: 1
+    PH_PLUS: 2
 
 
 @dataclasses.dataclass

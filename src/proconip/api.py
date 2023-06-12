@@ -3,10 +3,12 @@
 from aiohttp import BasicAuth, ClientSession
 from yarl import URL
 
-from proconip.definitions import (
+from .definitions import (
     API_PATH_GET_STATE,
     API_PATH_USRCFG,
+    API_PATH_COMMAND,
     ConfigObject,
+    DosageTarget,
     GetStateData,
     Relay,
 )
@@ -135,6 +137,51 @@ class RelaySwitch:
                                   self.config,
                                   current_state,
                                   current_state.get_relay(relay_id))
+
+
+async def async_start_dosage(
+        client_session: ClientSession,
+        config: ConfigObject,
+        dosage_target: DosageTarget,
+        dosage_duration: int) -> None:
+    """Start manual dosge for given target and duration."""
+    url = URL(config.base_url)\
+        .with_path(API_PATH_COMMAND)\
+        .with_query(f"MAN_DOSAGE={dosage_target},{dosage_duration}")
+    result = await client_session.get(url, auth=BasicAuth(config.username,
+                                                          password=config.password))
+    if result.status != 200:
+        raise BasStatusCodeException(f"Unexpected status code: {result.status}")
+    if result.status in [401, 403]:
+        raise BadCredentialsException
+
+
+class DosageControl:
+    """DosageControl class to start manual dosage via Command.htm endpoint."""
+    def __init__(self, client_session: ClientSession, config: ConfigObject):
+        self.client_session = client_session
+        self.config = config
+
+    async def async_chlorine_dosage(self, dosage_duration: int) -> None:
+        """Start manual chlorine dosage."""
+        await async_start_dosage(self.client_session,
+                                 self.config,
+                                 DosageTarget.CHLORINE,
+                                 dosage_duration)
+
+    async def async_ph_minus_dosage(self, dosage_duration: int) -> None:
+        """Start manual pH minus dosage."""
+        await async_start_dosage(self.client_session,
+                                 self.config,
+                                 DosageTarget.PH_MINUS,
+                                 dosage_duration)
+
+    async def async_ph_plus_dosage(self, dosage_duration: int) -> None:
+        """Start manual pH plus dosage."""
+        await async_start_dosage(self.client_session,
+                                 self.config,
+                                 DosageTarget.PH_PLUS,
+                                 dosage_duration)
 
 
 class BadCredentialsException(Exception):
