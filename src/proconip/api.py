@@ -7,11 +7,11 @@ from .definitions import (
     API_PATH_GET_STATE,
     API_PATH_USRCFG,
     API_PATH_COMMAND,
+    BadRelayException,
     ConfigObject,
     DosageTarget,
     GetStateData,
     Relay,
-    BadRelayException
 )
 
 
@@ -21,10 +21,11 @@ async def async_get_raw_state(client_session: ClientSession, config: ConfigObjec
     result = await client_session.get(url,
                                       auth=BasicAuth(config.username,
                                                      password=config.password))
-    if result.status == 200:
-        return await result.text()
     if result.status in [401, 403]:
         raise BadCredentialsException
+    if result.status != 200:
+        raise BadStatusCodeException(f"Unexpected status code: {result.status}")
+    return await result.text()
 
 
 async def async_get_state(client_session: ClientSession, config: ConfigObject) -> GetStateData:
@@ -66,10 +67,10 @@ async def async_switch_on(
                                        data=f"ENA={bit_state[0]},{bit_state[1]}&MANUAL=1",
                                        auth=BasicAuth(config.username,
                                                       password=config.password))
-    if result.status != 200:
-        raise BadStatusCodeException(f"Unexpected status code: {result.status}")
     if result.status in [401, 403]:
         raise BadCredentialsException
+    if result.status != 200:
+        raise BadStatusCodeException(f"Unexpected status code: {result.status}")
 
 
 async def async_switch_off(
@@ -87,10 +88,10 @@ async def async_switch_off(
                                        data=f"ENA={bit_state[0]},{bit_state[1]}&MANUAL=1",
                                        auth=BasicAuth(config.username,
                                                       password=config.password))
-    if result.status != 200:
-        raise BadStatusCodeException(f"Unexpected status code: {result.status}")
     if result.status in [401, 403]:
         raise BadCredentialsException
+    if result.status != 200:
+        raise BadStatusCodeException(f"Unexpected status code: {result.status}")
 
 
 async def async_set_auto_mode(
@@ -108,10 +109,10 @@ async def async_set_auto_mode(
                                        data=f"ENA={bit_state[0]},{bit_state[1]}&MANUAL=1",
                                        auth=BasicAuth(config.username,
                                                       password=config.password))
-    if result.status != 200:
-        raise BadStatusCodeException(f"Unexpected status code: {result.status}")
     if result.status in [401, 403]:
         raise BadCredentialsException
+    if result.status != 200:
+        raise BadStatusCodeException(f"Unexpected status code: {result.status}")
 
 
 class RelaySwitch:
@@ -147,16 +148,16 @@ async def async_start_dosage(
         config: ConfigObject,
         dosage_target: DosageTarget,
         dosage_duration: int) -> None:
-    """Start manual dosge for given target and duration."""
+    """Start manual dosage for given target and duration."""
     url = URL(config.base_url)\
         .with_path(API_PATH_COMMAND)\
         .with_query(f"MAN_DOSAGE={dosage_target},{dosage_duration}")
     result = await client_session.get(url, auth=BasicAuth(config.username,
                                                           password=config.password))
-    if result.status != 200:
-        raise BadStatusCodeException(f"Unexpected status code: {result.status}")
     if result.status in [401, 403]:
         raise BadCredentialsException
+    if result.status != 200:
+        raise BadStatusCodeException(f"Unexpected status code: {result.status}")
 
 
 class DosageControl:
