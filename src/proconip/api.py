@@ -306,7 +306,7 @@ class DosageControl:
     async def async_ph_plus_dosage(
         self,
         dosage_duration: int,
-    ) -> None:
+    ) -> str:
         """Start manual pH plus dosage."""
         await async_start_dosage(
             client_session=self.client_session,
