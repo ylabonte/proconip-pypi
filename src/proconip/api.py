@@ -1,7 +1,7 @@
 """GetState class to get data from the GetState.csv interface."""
-import async_timeout
 import asyncio
 import socket
+import async_timeout
 
 from aiohttp import (
     BasicAuth,
@@ -99,6 +99,7 @@ async def async_post_usrcfg_cgi(
     config: ConfigObject,
     payload: str,
 ) -> str:
+    """Send post request to the /usrcfg.cgi endpoint."""
     url = URL(config.base_url).with_path(API_PATH_USRCFG)
     try:
         async with async_timeout.timeout(10):
