@@ -1,2 +1,2 @@
 aiohttp >= 3.8
-yarl >= 1.8
+yarl >= 1.9
