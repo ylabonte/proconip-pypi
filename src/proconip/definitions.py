@@ -39,9 +39,9 @@ NTP_FAULT_STATE = {
 
 class DosageTarget(IntEnum):
     """Helper enum for async_start_dosage."""
-    CHLORINE: 0
-    PH_MINUS: 1
-    PH_PLUS: 2
+    CHLORINE = 0
+    PH_MINUS = 1
+    PH_PLUS = 2
 
 
 @dataclasses.dataclass

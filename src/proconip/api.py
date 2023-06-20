@@ -308,7 +308,7 @@ class DosageControl:
         dosage_duration: int,
     ) -> str:
         """Start manual pH plus dosage."""
-        await async_start_dosage(
+        return await async_start_dosage(
             client_session=self.client_session,
             config=self.config,
             dosage_target=DosageTarget.PH_PLUS,
