@@ -103,7 +103,7 @@ class DataObject:
         self._offset = offset
         self._gain = gain
         self._raw_value = value
-        self._value = (value - offset) * gain
+        self._value = self._offset + (self._gain * self._raw_value)
 
         if column == 0:
             self._category = CATEGORY_TIME
