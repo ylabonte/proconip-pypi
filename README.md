@@ -18,8 +18,8 @@
 * [Give support](#give-support)
 * [Disclaimer](#disclaimer)
 
-
 ---
+![ProCon.IP Python Library](./logo.png)
 
 ## Introduction
 
