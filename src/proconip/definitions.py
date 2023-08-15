@@ -604,8 +604,8 @@ class GetStateData:
 
     @property
     def aggregated_relay_objects(self) -> list[DataObject]:
-        """Returns a list of all relays."""
-        return self._relay_objects + self.external_relay_objects
+        """Returns a list of all relay objects."""
+        return self._relay_objects + self._external_relay_objects
 
     @property
     def chlorine_dosage_relay(self) -> DataObject:
@@ -625,6 +625,10 @@ class GetStateData:
     def get_relay(self, relay_id: int) -> Relay:
         """Returns the Relay instance for the given id."""
         return Relay(self.aggregated_relay_objects[relay_id])
+
+    def get_relays(self) -> list[Relay]:
+        """Returns a list of all relays as Relay instances."""
+        return  self.relays() + self.external_relays()
 
     def determine_overall_relay_bit_state(self) -> [int, int]:
         """Determine the overall relay bit state from the current state."""
