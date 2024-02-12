@@ -1,4 +1,5 @@
 """GetState class to get data from the GetState.csv interface."""
+
 import asyncio
 import socket
 import async_timeout
@@ -32,10 +33,7 @@ async def async_get_raw_state(
         async with async_timeout.timeout(10):
             response = await client_session.get(
                 url,
-                auth=BasicAuth(
-                    config.username,
-                    password=config.password
-                ),
+                auth=BasicAuth(config.username, password=config.password),
             )
             if response.status in (401, 403):
                 raise BadCredentialsException("Invalid credentials")
@@ -67,11 +65,8 @@ async def async_get_state(
 
 class GetState:
     """GetState class to get data from the GetState.csv interface."""
-    def __init__(
-        self,
-        client_session: ClientSession,
-        config: ConfigObject
-    ):
+
+    def __init__(self, client_session: ClientSession, config: ConfigObject):
         self.client_session = client_session
         self.config = config
 
@@ -79,19 +74,13 @@ class GetState:
         self,
     ) -> str:
         """Get raw data (csv string) from the GetState.csv interface."""
-        return await async_get_raw_state(
-            self.client_session,
-            self.config
-        )
+        return await async_get_raw_state(self.client_session, self.config)
 
     async def async_get_state(
         self,
     ) -> GetStateData:
         """Get structured data from the GetState.csv interface."""
-        return await async_get_state(
-            self.client_session,
-            self.config
-        )
+        return await async_get_state(self.client_session, self.config)
 
 
 async def async_post_usrcfg_cgi(
@@ -128,10 +117,10 @@ async def async_post_usrcfg_cgi(
 
 
 async def async_switch_on(
-        client_session: ClientSession,
-        config: ConfigObject,
-        current_state: GetStateData,
-        relay: Relay,
+    client_session: ClientSession,
+    config: ConfigObject,
+    current_state: GetStateData,
+    relay: Relay,
 ) -> str:
     """Switch on a relay using the usrcfg.cgi interface."""
     if current_state.is_dosage_relay(relay):
@@ -145,15 +134,15 @@ async def async_switch_on(
     return await async_post_usrcfg_cgi(
         client_session=client_session,
         config=config,
-        payload=f"ENA={bit_state[0]},{bit_state[1]}&MANUAL=1"
+        payload=f"ENA={bit_state[0]},{bit_state[1]}&MANUAL=1",
     )
 
 
 async def async_switch_off(
-        client_session: ClientSession,
-        config: ConfigObject,
-        current_state: GetStateData,
-        relay: Relay,
+    client_session: ClientSession,
+    config: ConfigObject,
+    current_state: GetStateData,
+    relay: Relay,
 ) -> str:
     """Switch on a relay using the usrcfg.cgi interface."""
     bit_state = current_state.determine_overall_relay_bit_state()
@@ -168,10 +157,10 @@ async def async_switch_off(
 
 
 async def async_set_auto_mode(
-        client_session: ClientSession,
-        config: ConfigObject,
-        current_state: GetStateData,
-        relay: Relay,
+    client_session: ClientSession,
+    config: ConfigObject,
+    current_state: GetStateData,
+    relay: Relay,
 ) -> str:
     """Switch a relay to auto mode using the usrcfg.cgi interface."""
     bit_state = current_state.determine_overall_relay_bit_state()
@@ -187,6 +176,7 @@ async def async_set_auto_mode(
 
 class RelaySwitch:
     """RelaySwitch class to set relay states via usrcfg.cgi interface."""
+
     def __init__(
         self,
         client_session: ClientSession,
@@ -271,6 +261,7 @@ async def async_start_dosage(
 
 class DosageControl:
     """DosageControl class to start manual dosage via Command.htm endpoint."""
+
     def __init__(
         self,
         client_session: ClientSession,
@@ -300,7 +291,7 @@ class DosageControl:
             client_session=self.client_session,
             config=self.config,
             dosage_target=DosageTarget.PH_MINUS,
-            dosage_duration=dosage_duration
+            dosage_duration=dosage_duration,
         )
 
     async def async_ph_plus_dosage(
@@ -312,7 +303,7 @@ class DosageControl:
             client_session=self.client_session,
             config=self.config,
             dosage_target=DosageTarget.PH_PLUS,
-            dosage_duration=dosage_duration
+            dosage_duration=dosage_duration,
         )
 
 

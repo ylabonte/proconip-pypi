@@ -1,4 +1,5 @@
 """Defines data structures for use with and used by the GetState.csv and usercfg.cgi APIs."""
+
 import dataclasses
 from enum import IntEnum
 
@@ -39,6 +40,7 @@ NTP_FAULT_STATE = {
 
 class DosageTarget(IntEnum):
     """Helper enum for async_start_dosage."""
+
     CHLORINE = 0
     PH_MINUS = 1
     PH_PLUS = 2
@@ -95,7 +97,15 @@ class DataObject:
     _display_value: str
 
     # pylint: disable=R0913
-    def __init__(self, column: int, name: str, unit: str, offset: float, gain: float, value: float):
+    def __init__(
+        self,
+        column: int,
+        name: str,
+        unit: str,
+        offset: float,
+        gain: float,
+        value: float,
+    ):
         self._column = column
 
         self._name = name
@@ -108,7 +118,9 @@ class DataObject:
         if column == 0:
             self._category = CATEGORY_TIME
             self._category_id = 0
-            self._display_value = f"{int(self._value / 256):02d}:{(int(self._value) % 256):02d}"
+            self._display_value = (
+                f"{int(self._value / 256):02d}:{(int(self._value) % 256):02d}"
+            )
         elif 1 <= column <= 5:
             self._category = CATEGORY_ANALOG
             self._category_id = column - 1
@@ -218,7 +230,8 @@ class Relay(DataObject):
             data_object.unit,
             data_object.offset,
             data_object.gain,
-            data_object.value)
+            data_object.value,
+        )
 
     def __str__(self):
         return f"{self._name}: {self._display_value}"
@@ -292,8 +305,9 @@ class GetStateData:
         self._data_raw_values = [float(raw) for raw in lines[line + 5].split(",")]
         self._data_values: dict[int, float] = {}
         for i, value in enumerate(self._data_raw_values):
-            self._data_values[i] = (float(value) - float(self._data_offsets[i])) \
-                                   * float(self._data_gain[i])
+            self._data_values[i] = (
+                float(value) - float(self._data_offsets[i])
+            ) * float(self._data_gain[i])
 
         self._parse_system_info()
         self._parse()
@@ -410,10 +424,12 @@ class GetStateData:
             case _:
                 return False
 
-    def is_dosage_relay(self,
-                        relay_object: Relay = None,
-                        data_object: DataObject = None,
-                        relay_id: int = None) -> bool:
+    def is_dosage_relay(
+        self,
+        relay_object: Relay = None,
+        data_object: DataObject = None,
+        relay_id: int = None,
+    ) -> bool:
         """Returns true if the given relay_object OR data_object OR column refers to a dosage
         control relay."""
         dosage_control_relays = [
@@ -488,29 +504,41 @@ class GetStateData:
         """Parse the raw data and populate the object's attributes."""
         self._data_objects = []
         for column, name in enumerate(self._data_names):
-            self._data_objects.append(DataObject(column,
-                                                 name,
-                                                 self._data_units[column],
-                                                 self._data_offsets[column],
-                                                 self._data_gain[column],
-                                                 self._data_raw_values[column]))
+            self._data_objects.append(
+                DataObject(
+                    column,
+                    name,
+                    self._data_units[column],
+                    self._data_offsets[column],
+                    self._data_gain[column],
+                    self._data_raw_values[column],
+                )
+            )
 
-        self._analog_objects = [obj for obj in self._data_objects
-                                if obj.category == CATEGORY_ANALOG]
-        self._electrode_objects = [obj for obj in self._data_objects
-                                   if obj.category == CATEGORY_ELECTRODE]
-        self._temperature_objects = [obj for obj in self._data_objects
-                                     if obj.category == CATEGORY_TEMPERATURE]
-        self._relay_objects = [obj for obj in self._data_objects
-                               if obj.category == CATEGORY_RELAY]
-        self._digital_objects = [obj for obj in self._data_objects
-                                 if obj.category == CATEGORY_DIGITAL_INPUT]
-        self._external_relay_objects = [obj for obj in self._data_objects
-                                        if obj.category == CATEGORY_EXTERNAL_RELAY]
-        self._canister_objects = [obj for obj in self._data_objects
-                                  if obj.category == CATEGORY_CANISTER]
-        self._consumption_objects = [obj for obj in self._data_objects
-                                     if obj.category == CATEGORY_CONSUMPTION]
+        self._analog_objects = [
+            obj for obj in self._data_objects if obj.category == CATEGORY_ANALOG
+        ]
+        self._electrode_objects = [
+            obj for obj in self._data_objects if obj.category == CATEGORY_ELECTRODE
+        ]
+        self._temperature_objects = [
+            obj for obj in self._data_objects if obj.category == CATEGORY_TEMPERATURE
+        ]
+        self._relay_objects = [
+            obj for obj in self._data_objects if obj.category == CATEGORY_RELAY
+        ]
+        self._digital_objects = [
+            obj for obj in self._data_objects if obj.category == CATEGORY_DIGITAL_INPUT
+        ]
+        self._external_relay_objects = [
+            obj for obj in self._data_objects if obj.category == CATEGORY_EXTERNAL_RELAY
+        ]
+        self._canister_objects = [
+            obj for obj in self._data_objects if obj.category == CATEGORY_CANISTER
+        ]
+        self._consumption_objects = [
+            obj for obj in self._data_objects if obj.category == CATEGORY_CONSUMPTION
+        ]
 
     @property
     def analog_objects(self) -> list[DataObject]:
@@ -549,7 +577,8 @@ class GetStateData:
     def external_relays(self) -> list[Relay]:
         """Returns external relays as a list of Relay object instances."""
         return [
-            Relay(external_relay_object) for external_relay_object in self._external_relay_objects
+            Relay(external_relay_object)
+            for external_relay_object in self._external_relay_objects
         ]
 
     @property
@@ -628,7 +657,7 @@ class GetStateData:
 
     def get_relays(self) -> list[Relay]:
         """Returns a list of all relays as Relay instances."""
-        return  self.relays() + self.external_relays()
+        return self.relays() + self.external_relays()
 
     def determine_overall_relay_bit_state(self) -> [int, int]:
         """Determine the overall relay bit state from the current state."""
@@ -644,6 +673,7 @@ class GetStateData:
             if relay.is_on():
                 bit_state[1] |= relay_bit_mask
         return bit_state
+
 
 class BadRelayException(Exception):
     """Exception to raise when an invalid relay was given as parameter."""

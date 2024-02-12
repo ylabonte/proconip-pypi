@@ -1,3 +1,4 @@
-aiohttp >= 3.8
-yarl >= 1.8
+aiohttp >= 3.9
+async-timeout >= 4.0
+yarl >= 1.9
 --editable src

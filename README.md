@@ -16,6 +16,7 @@
 * [A brief description of the ProCon.IP pool controller](#a-brief-description-of-the-proconip-pool-controller)
 * [Get support](#get-support)
 * [Give support](#give-support)
+* [Release Notes](#release-notes)
 * [Disclaimer](#disclaimer)
 
 ---
@@ -176,6 +177,49 @@ Because programmers are described as machines that convert coffee (their habitua
 output), there is a really simple way to support me:
 
 [<img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 144px !important;" >](https://www.buymeacoffee.com/ylabonte)
+
+## Release Notes
+
+### v1.3.0 (2023-08-16)
+* Add `GetStateData.get_relays()` to get all available Relay instances.
+
+### v1.2.7 (2023-07-04)
+* Fix calculation formula for actual values (`offset + gain * raw`).
+
+### v1.2.6 (2023-06-20)
+* Fix DosageTarget enum and return value of `DosageControl.async_ph_plus_dosage`.
+
+### v1.2.5 (2023-06-18)
+* Fix return type/value of `DosageControl.async_ph_plus_dosage()`
+
+### v1.2.4 (2023-06-18)
+* Refactor request exception handling
+
+### v1.2.3 (2023-06-17)
+* Fix api methods to produce `BadCredentialsExceptions` in case of 401 and 403 responses.
+
+### v1.2.2 (2023-06-12)
+* Fix typo in `BadStatusCodeException`
+
+### v1.2.1 (2023-06-12)
+* Avoid invalid operations regarding dosage control relays.
+
+### v1.2.0 (2023-06-12)
+* Add DosageControl abilities.
+
+### v1.1.0 (2023-05-23)
+*  Unify api methods and naming conventions:
+  * Same names for functions and class methods with same functionality.
+  * `async_` prefixes for all async functions/methods.
+
+### v1.0.0 (2023-05-21)
+* Fix post data for switching relays.
+
+### v0.0.2 (2023-05-18)
+* Add relay switching capabilities.
+
+### v0.0.1 (2023-04-23)
+* Initial release with data reading capabilities.
 
 ## Disclaimer
 

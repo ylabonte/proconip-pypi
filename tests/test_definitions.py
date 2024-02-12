@@ -25,6 +25,7 @@ from .helper import (
 
 class ConfigObjectTestCase(unittest.TestCase):
     """Testing the ConfigObject class."""
+
     def test_initialization(self):
         """Test the initialization of the ConfigObject class."""
         actual = ConfigObject(BASE_URL, USERNAME, PASSWORD)
@@ -35,6 +36,7 @@ class ConfigObjectTestCase(unittest.TestCase):
 
 class GetStateDataTestCase(unittest.TestCase):
     """Testing the GetStateData class."""
+
     def setUp(self):
         """Set up the test case."""
         self.actual = GetStateData(GET_STATE_CSV)
@@ -45,7 +47,7 @@ class GetStateDataTestCase(unittest.TestCase):
         self.assertIsNotNone(actual)
 
     def test_system_info(self):
-        """"Test the system info properties of the GetStateData class."""
+        """ "Test the system info properties of the GetStateData class."""
         self.assertEqual("1.7.3", self.actual.version)
         self.assertEqual(9559698, self.actual.cpu_time)
         self.assertEqual(1, self.actual.reset_root_cause)
@@ -68,14 +70,28 @@ class GetStateDataTestCase(unittest.TestCase):
         self.assertEqual(False, self.actual.is_electrolysis_enabled())
         self.assertEqual(True, self.actual.is_ph_minus_dosage_enabled())
         self.assertEqual(False, self.actual.is_ph_plus_dosage_enabled())
-        self.assertEqual(True, self.actual.is_dosage_enabled(self.actual.canister_objects[0]))
-        self.assertEqual(True, self.actual.is_dosage_enabled(self.actual.canister_objects[1]))
-        self.assertEqual(False, self.actual.is_dosage_enabled(self.actual.canister_objects[2]))
-        self.assertEqual(True, self.actual.is_dosage_enabled(self.actual.consumption_objects[0]))
-        self.assertEqual(True, self.actual.is_dosage_enabled(self.actual.consumption_objects[1]))
-        self.assertEqual(False, self.actual.is_dosage_enabled(self.actual.consumption_objects[2]))
+        self.assertEqual(
+            True, self.actual.is_dosage_enabled(self.actual.canister_objects[0])
+        )
+        self.assertEqual(
+            True, self.actual.is_dosage_enabled(self.actual.canister_objects[1])
+        )
+        self.assertEqual(
+            False, self.actual.is_dosage_enabled(self.actual.canister_objects[2])
+        )
+        self.assertEqual(
+            True, self.actual.is_dosage_enabled(self.actual.consumption_objects[0])
+        )
+        self.assertEqual(
+            True, self.actual.is_dosage_enabled(self.actual.consumption_objects[1])
+        )
+        self.assertEqual(
+            False, self.actual.is_dosage_enabled(self.actual.consumption_objects[2])
+        )
         self.assertEqual("External reset", self.actual.get_reset_root_cause_as_str())
-        self.assertEqual("Warning (GUI warning, yellow)", self.actual.get_ntp_fault_state_as_str())
+        self.assertEqual(
+            "Warning (GUI warning, yellow)", self.actual.get_ntp_fault_state_as_str()
+        )
 
     def test_time(self):
         """Test the time property of the GetStateData class."""
@@ -119,13 +135,17 @@ class GetStateDataTestCase(unittest.TestCase):
         self.assertIsNotNone(self.actual.ph_electrode.value)
         self.assertIsNotNone(self.actual.ph_electrode.display_value)
         self.assertIsNotNone(self.actual.ph_electrode.column)
-        self.assertEqual(self.actual.ph_electrode.column - 6, self.actual.ph_electrode.category_id)
+        self.assertEqual(
+            self.actual.ph_electrode.column - 6, self.actual.ph_electrode.category_id
+        )
         self.assertEqual(CATEGORY_ELECTRODE, self.actual.ph_electrode.category)
 
     def test_temperature_objects(self):
         """Test the temperature objects property of the GetStateData class."""
         self.assertEqual(len(self.actual.temperature_objects), 8)
-        for category_id, temperature_object in enumerate(self.actual.temperature_objects):
+        for category_id, temperature_object in enumerate(
+            self.actual.temperature_objects
+        ):
             self.assertIsNotNone(temperature_object.name)
             self.assertEqual(temperature_object.unit, "C")
             self.assertIsNotNone(temperature_object.offset)
@@ -155,7 +175,9 @@ class GetStateDataTestCase(unittest.TestCase):
     def test_digital_input_objects(self):
         """Test the digital input objects property of the GetStateData class."""
         self.assertEqual(len(self.actual.digital_input_objects), 4)
-        for category_id, digital_input_object in enumerate(self.actual.digital_input_objects):
+        for category_id, digital_input_object in enumerate(
+            self.actual.digital_input_objects
+        ):
             self.assertIsNotNone(digital_input_object.name)
             self.assertIsNotNone(digital_input_object.unit)
             self.assertIsNotNone(digital_input_object.offset)
@@ -170,7 +192,9 @@ class GetStateDataTestCase(unittest.TestCase):
     def test_external_relay_objects(self):
         """Test the external relay objects property of the GetStateData class."""
         self.assertEqual(len(self.actual.external_relay_objects), 8)
-        for category_id, external_relay_object in enumerate(self.actual.external_relay_objects):
+        for category_id, external_relay_object in enumerate(
+            self.actual.external_relay_objects
+        ):
             self.assertIsNotNone(external_relay_object.name)
             self.assertEqual(external_relay_object.unit, "--")
             self.assertIsNotNone(external_relay_object.offset)
@@ -200,7 +224,9 @@ class GetStateDataTestCase(unittest.TestCase):
     def test_consumption_objects(self):
         """Test the consumption objects property of the GetStateData class."""
         self.assertEqual(len(self.actual.consumption_objects), 3)
-        for category_id, consumption_object in enumerate(self.actual.consumption_objects):
+        for category_id, consumption_object in enumerate(
+            self.actual.consumption_objects
+        ):
             self.assertIsNotNone(consumption_object.name)
             self.assertIsNotNone(consumption_object.unit)
             self.assertIsNotNone(consumption_object.offset)
@@ -217,5 +243,5 @@ class GetStateDataTestCase(unittest.TestCase):
         self.assertEqual(len(self.actual.aggregated_relay_objects), 16)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
