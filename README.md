@@ -2,6 +2,7 @@
 
 [![Pylint](https://github.com/ylabonte/proconip-pypi/actions/workflows/pylint.yml/badge.svg)](https://github.com/ylabonte/proconip-pypi/actions/workflows/pylint.yml)
 [![Unittest](https://github.com/ylabonte/proconip-pypi/actions/workflows/unittest.yml/badge.svg)](https://github.com/ylabonte/proconip-pypi/actions/workflows/unittest.yml)
+[![CodeQL](https://github.com/ylabonte/proconip-pypi/actions/workflows/codeql.yml/badge.svg)](https://github.com/ylabonte/proconip-pypi/actions/workflows/codeql.yml)
 [![PyPi Package release](https://github.com/ylabonte/proconip-pypi/actions/workflows/python-publish.yml/badge.svg)](https://github.com/ylabonte/proconip-pypi/actions/workflows/python-publish.yml)
 
 [![PyPI](https://img.shields.io/pypi/v/proconip?label=Current%20Release)](https://pypi.org/project/proconip/)
@@ -179,6 +180,11 @@ output), there is a really simple way to support me:
 [<img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 144px !important;" >](https://www.buymeacoffee.com/ylabonte)
 
 ## Release Notes
+
+### In progress...
+* Add dependabot with `versioning-strategy: "increase"` and an auto-merge workflow for automated updates on the github 
+  `main` branch.
+* Add code scanning (CodeQL) workflow.
 
 ### v1.3.0 (2023-08-16)
 * Add `GetStateData.get_relays()` to get all available Relay instances.
