@@ -181,7 +181,8 @@ output), there is a really simple way to support me:
 
 ## Release Notes
 
-### In progress...
+### v1.3.1 (2024-05-09)
+* Add dedicated `api.TimeoutException` to raise for connection timeouts.
 * Add dependabot with `versioning-strategy: "increase"` and an auto-merge workflow for automated updates on the github 
   `main` branch.
 * Add code scanning (CodeQL) workflow.

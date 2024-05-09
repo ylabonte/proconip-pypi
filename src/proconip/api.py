@@ -246,7 +246,7 @@ async def async_start_dosage(
             response.raise_for_status()
             return await response.text()
     except asyncio.TimeoutError as exception:
-        raise ProconipApiException(
+        raise TimeoutException(
             "Timeout error fetching data",
         ) from exception
     except (ClientError, socket.gaierror) as exception:
@@ -317,3 +317,7 @@ class BadCredentialsException(ProconipApiException):
 
 class BadStatusCodeException(ProconipApiException):
     """Exception to raise when we get an unknown response code."""
+
+
+class TimeoutException(ProconipApiException):
+    """Exception to raise when the connection times out."""
