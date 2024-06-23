@@ -169,8 +169,6 @@ asyncio.run(dmx_example())
 
 ## A brief description of the ProCon.IP pool controller
 
-![Picture from pooldigital.de](https://www.pooldigital.de/shop/media/image/66/47/a5/ProConIP1_720x600.png)
-
 The ProCon.IP pool controller is a low budget network attached control unit for
 home swimming pools. With its software switched relays, it can control
 multiple pumps (for the pool filter and different dosage aspects) either
@@ -190,8 +188,8 @@ switching the relays).
 For more information see the following links (sorry it's only in german;
 haven't found an english documentation/information so far):
 
-* [pooldigital.de webshop](https://www.pooldigital.de/shop/poolsteuerungen/procon.ip/35/procon.ip-webbasierte-poolsteuerung-/-dosieranlage)
-* [pooldigital.de forum](http://forum.pooldigital.de/)
+* [pooldigital.de webshop](https://pooldigital.de/poolsteuerungen/procon.ip/35/procon.ip-webbasierte-poolsteuerung-/-dosieranlage)
+* [pooldigital.de forum](https://www.poolsteuerung.de/)
 
 ## Get support
 
