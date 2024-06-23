@@ -21,7 +21,7 @@
 * [Disclaimer](#disclaimer)
 
 ---
-![ProCon.IP Python Library](./logo.png)
+![ProCon.IP Python Library](https://raw.githubusercontent.com/ylabonte/proconip-pypi/main/logo.png)
 
 ## Introduction
 
@@ -137,7 +137,34 @@ async def manual_dosage_example():
     await client_session.close()
 
 
-asyncio.run(reading_data_example())
+asyncio.run(manual_dosage_example())
+```
+
+### Reading and changing DMX channels states
+
+```python
+import asyncio
+import aiohttp
+from proconip.definitions import ConfigObject
+from proconip.api import DmxControl
+
+
+async def dmx_example():
+    client_session = aiohttp.ClientSession()
+    config = ConfigObject("http://192.168.2.3", "admin", "admin")
+    dmx_control = DmxControl(client_session, config)
+    dmx_data = await dmx_control.async_get_dmx()
+    for channel in dmx_data:
+        print(f"{channel.name} before: {channel.value}")
+        dmx_data.set(channel.index, (channel.value + 128) % 256)
+        print(f"{channel.name} after: {dmx_data.get_value(channel.index)}")
+      
+    await dmx_control.async_set(dmx_data)
+    await client_session.close()
+
+
+asyncio.run(dmx_example())
+
 ```
 
 ## A brief description of the ProCon.IP pool controller
@@ -180,6 +207,12 @@ output), there is a really simple way to support me:
 [<img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 144px !important;" >](https://www.buymeacoffee.com/ylabonte)
 
 ## Release Notes
+
+### v1.4.0 (2024-06-24)
+* Introduce new API class `DmxControl` with three methods:
+  * `async_get_raw_dmx()` to get the raw body string of the '/GetDmx.csv'.
+  * `async_get_dmx()` to get structured DMX channel states.
+  * `async_set()` to set DMX channel states.
 
 ### v1.3.1 (2024-05-09)
 * Add dedicated `api.TimeoutException` to raise for connection timeouts.

@@ -18,6 +18,8 @@ from .definitions import (
     BadRelayException,
     ConfigObject,
     DosageTarget,
+    DmxChannelData,
+    GetDmxData,
     GetStateData,
     Relay,
 )
@@ -304,6 +306,92 @@ class DosageControl:
             config=self.config,
             dosage_target=DosageTarget.PH_PLUS,
             dosage_duration=dosage_duration,
+        )
+
+
+async def async_get_raw_dmx(
+    client_session: ClientSession,
+    config: ConfigObject,
+) -> str:
+    """Get raw data (csv string) from the GetState.csv interface."""
+    url = URL(config.base_url).with_path(API_PATH_COMMAND)
+    try:
+        async with async_timeout.timeout(10):
+            response = await client_session.get(
+                url=url,
+                auth=BasicAuth(
+                    login=config.username,
+                    password=config.password,
+                ),
+            )
+            response.raise_for_status()
+            return await response.text()
+    except asyncio.TimeoutError as exception:
+        raise TimeoutException(
+            "Timeout error fetching data",
+        ) from exception
+    except (ClientError, socket.gaierror) as exception:
+        raise ProconipApiException(
+            "Error fetching data",
+        ) from exception
+    except Exception as exception:  # pylint: disable=broad-except
+        raise BadStatusCodeException(
+            "Unexpected response",
+        ) from exception
+
+
+async def async_get_dmx(
+    client_session: ClientSession,
+    config: ConfigObject,
+) -> GetDmxData:
+    """Get structured data from the GetDmx.csv interface."""
+    raw_data = await async_get_raw_dmx(client_session=client_session, config=config)
+    structured_data = GetDmxData(raw_data)
+    return structured_data
+
+
+async def async_set_dmx(
+    client_session: ClientSession,
+    config: ConfigObject,
+    dmx_states: GetDmxData,
+) -> str:
+    """Set DMX channel states."""
+    return await async_post_usrcfg_cgi(
+        client_session=client_session,
+        config=config,
+        payload="&".join(dmx_states.post_data),
+    )
+
+
+class DmxControl:
+    """GetDmx class to get data from the GetDmx.csv interface."""
+
+    def __init__(self, client_session: ClientSession, config: ConfigObject):
+        """Initialize DmxControl class."""
+        self.client_session = client_session
+        self.config = config
+
+    async def async_get_raw_dmx(
+        self,
+    ) -> str:
+        """Get raw data (csv string) from the GetState.csv interface."""
+        return await async_get_raw_dmx(self.client_session, self.config)
+
+    async def async_get_dmx(
+        self,
+    ) -> GetDmxData:
+        """Get structured data from the GetDmx.csv interface."""
+        return await async_get_dmx(self.client_session, self.config)
+
+    async def async_set(
+        self,
+        data: GetDmxData,
+    ) -> str:
+        """Set DMX channel states."""
+        return await async_set_dmx(
+            client_session=self.client_session,
+            config=self.config,
+            dmx_states=data,
         )
 
 

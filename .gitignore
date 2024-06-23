@@ -1,3 +1,8 @@
+# venv files
+pyvenv.cfg
+bin/
+include/
+
 # IDE files
 .idea/
 

@@ -3,11 +3,10 @@
 import dataclasses
 from enum import IntEnum
 
-
 API_PATH_GET_STATE = "/GetState.csv"
 API_PATH_USRCFG = "/usrcfg.cgi"
 API_PATH_COMMAND = "/Command.htm"
-
+API_PATH_GET_DMX = "/GetDmx.csv"
 
 CATEGORY_TIME = "time"
 CATEGORY_ANALOG = "analog"
@@ -18,7 +17,6 @@ CATEGORY_DIGITAL_INPUT = "digital_input"
 CATEGORY_EXTERNAL_RELAY = "external_relay"
 CATEGORY_CANISTER = "canister"
 CATEGORY_CONSUMPTION = "consumption"
-
 
 RESET_ROOT_CAUSE = {
     0: "n.a.",
@@ -238,7 +236,7 @@ class Relay(DataObject):
 
     @property
     def relay_id(self) -> int:
-        """Returns the aggregated relays id (eg. 8 for the first external relay)."""
+        """Returns the aggregated relays id (e.g. 8 for the first external relay)."""
         offset = 8 if self.category == CATEGORY_EXTERNAL_RELAY else 0
         return self.category_id + offset
 
@@ -346,22 +344,22 @@ class GetStateData:
 
     @property
     def reset_root_cause(self) -> int:
-        """Returns the reason for the last reset of the controller encoded as bit state."""
+        """Returns the reason for the last reset of the controller encoded as a bit state."""
         return self._reset_root_cause
 
     @property
     def ntp_fault_state(self) -> int:
-        """Returns the NTP fault state encoded as bit state."""
+        """Returns the NTP fault state encoded as a bit state."""
         return self._ntp_fault_state
 
     @property
     def config_other_enable(self) -> int:
-        """Returns the various other config flags of the controller encoded as bit state."""
+        """Returns the various other config flags of the controller encoded as a bit state."""
         return self._config_other_enable
 
     @property
     def dosage_control(self) -> int:
-        """Returns the dosage control config flags of the controller encoded as bit state."""
+        """Returns the dosage control config flags of the controller encoded as a bit state."""
         return self._dosage_control
 
     @property
@@ -660,7 +658,7 @@ class GetStateData:
         return self.relays() + self.external_relays()
 
     def determine_overall_relay_bit_state(self) -> [int, int]:
-        """Determine the overall relay bit state from the current state."""
+        """Determine the overall relay a bit state from the current state."""
         relays = self.relays()
         bit_state = [255, 0]
         if self.is_relay_extension_enabled():
@@ -673,6 +671,92 @@ class GetStateData:
             if relay.is_on():
                 bit_state[1] |= relay_bit_mask
         return bit_state
+
+
+@dataclasses.dataclass
+class DmxChannelData:
+    """DMX channel state representation."""
+
+    """Actual channel value."""
+    value: int
+
+    _index: int
+    _name: str
+
+    def __init__(self, index: int, value: int):
+        """Initialize a new DMX channel."""
+        self.value = value
+        self._index = index
+        self._name = "CH{no:0>2}".format(no=index + 1)
+
+    @property
+    def index(self) -> int:
+        """Get the channel index."""
+        return self._index
+
+    @property
+    def name(self) -> str:
+        """Get the channel name."""
+        return self._name
+
+    def __str__(self):
+        """Returns the channel value on string conversion."""
+        return str(self.value)
+
+
+@dataclasses.dataclass
+class GetDmxData:
+    """Data representation and manipulation model for the DMX of /GetDmx.csv response."""
+
+    _channels: list[DmxChannelData]
+
+    def __init__(self, raw_data: str):
+        """Initialize a new GetDmxData object from raw response string."""
+        self._raw_data = raw_data
+        self._channels = []
+
+        line = 0
+        lines = raw_data.splitlines()
+        while len(lines[line].strip()) < 1 and line < len(lines):
+            line += 1
+
+        for idx, value in enumerate(lines[line].split(",")):
+            self._channels.insert(idx, DmxChannelData(idx, int(value)))
+
+    def __getitem__(self, index) -> DmxChannelData:
+        """Direct access to channels via index operation."""
+        return self._channels[index]
+
+    def __str__(self):
+        """Returns the raw input string on string conversion."""
+        return self._raw_data
+
+    def get_value(self, index: int) -> int:
+        """Get the value of the specified channel (index 0 = channel 1; index 15 = channel 16)"""
+        return self._channels[index].value
+
+    def set(self, index: int, value: int):
+        """Set the value for a specific channel (index 0 represents channel 1)."""
+        if index > 15 or index < 0:
+            raise IndexError("Index must be between 0 (channel 0) and 15 (channel 16)")
+        if value < 0:
+            value = 0
+        elif value > 255:
+            value = 255
+        self._channels[index].value = value
+
+    @property
+    def post_data(self) -> dict[str, str]:
+        """A dictionary representing the http post data to set DMX channels according to this GetDmxData object."""
+        data: dict[str, str] = {
+            "TYPE": "0",
+            "LEN": "16",
+            "CH1_8": ",".join(map(str, self._channels[:8])),
+            "CH9_16": ",".join(map(str, self._channels[8:])),
+            "DMX512": "1",
+        }
+
+        return data
 
 
 class BadRelayException(Exception):

@@ -1,10 +1,13 @@
 """Testing data structures and helper classes from definitions module."""
 
+import copy
 import unittest
 
 from proconip.definitions import (
     ConfigObject,
     GetStateData,
+    DmxChannelData,
+    GetDmxData,
     CATEGORY_ANALOG,
     CATEGORY_ELECTRODE,
     CATEGORY_TEMPERATURE,
@@ -15,9 +18,10 @@ from proconip.definitions import (
     CATEGORY_CONSUMPTION,
 )
 
-from .helper import (
+from helper import (
     BASE_URL,
     GET_STATE_CSV,
+    GET_DMX_CSV,
     USERNAME,
     PASSWORD,
 )
@@ -241,6 +245,80 @@ class GetStateDataTestCase(unittest.TestCase):
     def test_aggregated_relay_objects(self):
         """Test the aggregated relay objects property of the GetStateData class."""
         self.assertEqual(len(self.actual.aggregated_relay_objects), 16)
+
+
+class DmxChannelDataTestCase(unittest.TestCase):
+    """Testing the DmxChannelData class."""
+
+    def test_initialization(self):
+        """Test the initialization of the DmxChannelData class."""
+        actual = DmxChannelData(0, 0)
+        self.assertIsNotNone(actual)
+
+    def test_name_with_leading_zero(self):
+        """Test the name with leading zero character."""
+        actual = DmxChannelData(0, 0)
+        self.assertEqual(actual.name, "CH01")
+
+    def test_name_without_leading_zero(self):
+        """Test the name without leading zero character."""
+        actual = DmxChannelData(9, 0)
+        self.assertEqual(actual.name, "CH10")
+
+
+class GetDmxDataTestCase(unittest.TestCase):
+    """Testing the GetDmxData class."""
+
+    def setUp(self):
+        """Set up the test case."""
+        self.actual = GetDmxData(GET_DMX_CSV)
+
+    def test_initialization(self):
+        """Test the initialization of the GetDmxData class."""
+        actual = GetDmxData(GET_DMX_CSV)
+        self.assertIsNotNone(actual)
+
+    def test_post_data_property(self):
+        """Test the post_data method of the GetDmxData class."""
+        post_data = self.actual.post_data
+        self.assertIsNotNone(post_data)
+        self.assertEqual(post_data["TYPE"], "0")
+        self.assertEqual(post_data["LEN"], "16")
+        self.assertEqual(post_data["CH1_8"], "0,10,20,30,40,50,60,70")
+        self.assertEqual(post_data["CH9_16"], "80,90,100,110,120,130,140,150")
+        self.assertEqual(post_data["DMX512"], "1")
+
+    def test_string_conversion(self):
+        """Test the string conversion method of the GetDmxData class."""
+        raw_data = f"{self.actual}"
+        self.assertEqual(raw_data, GET_DMX_CSV)
+
+    def test_set_method(self):
+        """Test the set() and get_value() methods of the GetDmxData class to set a channel."""
+        data = copy.deepcopy(self.actual)
+        self.assertIsNotNone(data)
+        data.set(0, 0)
+        data.set(15, 0)
+        self.assertEqual(data.get_value(0), 0)
+        self.assertEqual(data.get_value(15), 0)
+        data.set(0, 255)
+        data.set(15, 255)
+        self.assertEqual(data.get_value(0), 255)
+        self.assertEqual(data.get_value(15), 255)
+        data.set(0, 1000)
+        data.set(15, 1000)
+        self.assertEqual(data.get_value(0), 255)
+        self.assertEqual(data.get_value(15), 255)
+        data.set(0, -1000)
+        data.set(15, -1000)
+        self.assertEqual(data.get_value(0), 0)
+        self.assertEqual(data.get_value(15), 0)
+
+    def test_index_operation(self):
+        """Test the index operation of the GetDmxData class."""
+        data = copy.deepcopy(self.actual)
+        data.set(0, 123)
+        self.assertEqual(data[0].value, 123)
 
 
 if __name__ == "__main__":

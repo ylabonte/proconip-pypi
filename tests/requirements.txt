@@ -1,4 +1,3 @@
 aiohttp==3.9.5
-async-timeout >= 4.0
-yarl >= 1.9
---editable src
+async-timeout==4.0.3
+yarl==1.9.4
