@@ -22,10 +22,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r tests/requirements.txt
         cd src/
+        pip install setuptools
         python setup.py bdist
         pip install .
         cd ..
 
     - name: Run unit tests
       run: |
-        python -m unittest --verbose tests/test_*.py
+        cd tests
+        python -m unittest --verbose test_*.py
