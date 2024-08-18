@@ -206,6 +206,9 @@ output), there is a really simple way to support me:
 
 ## Release Notes
 
+### v1.4.1 (2024-08-18)
+* Update dependencies
+
 ### v1.4.0 (2024-06-24)
 * Introduce new API class `DmxControl` with three methods:
   * `async_get_raw_dmx()` to get the raw body string of the '/GetDmx.csv'.
