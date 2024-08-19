@@ -15,10 +15,10 @@ from .definitions import (
     API_PATH_GET_STATE,
     API_PATH_USRCFG,
     API_PATH_COMMAND,
+    API_PATH_GET_DMX,
     BadRelayException,
     ConfigObject,
     DosageTarget,
-    DmxChannelData,
     GetDmxData,
     GetStateData,
     Relay,
@@ -314,7 +314,7 @@ async def async_get_raw_dmx(
     config: ConfigObject,
 ) -> str:
     """Get raw data (csv string) from the GetState.csv interface."""
-    url = URL(config.base_url).with_path(API_PATH_COMMAND)
+    url = URL(config.base_url).with_path(API_PATH_GET_DMX)
     try:
         async with async_timeout.timeout(10):
             response = await client_session.get(
