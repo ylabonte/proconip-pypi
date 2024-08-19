@@ -359,7 +359,7 @@ async def async_set_dmx(
     return await async_post_usrcfg_cgi(
         client_session=client_session,
         config=config,
-        payload="&".join(f"{k}={v}" for k, v in dmx_states.post_data),
+        payload="&".join([f"{k}={v}" for k, v in dmx_states.post_data.items()]),
     )
 
 

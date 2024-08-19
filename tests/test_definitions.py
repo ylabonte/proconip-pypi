@@ -287,6 +287,8 @@ class GetDmxDataTestCase(unittest.TestCase):
         self.assertEqual(post_data["CH1_8"], "0,10,20,30,40,50,60,70")
         self.assertEqual(post_data["CH9_16"], "80,90,100,110,120,130,140,150")
         self.assertEqual(post_data["DMX512"], "1")
+        payload = "&".join([f"{k}={v}" for k, v in post_data.items()])
+        self.assertEqual(payload, "TYPE=0&LEN=16&CH1_8=0,10,20,30,40,50,60,70&CH9_16=80,90,100,110,120,130,140,150&DMX512=1")
 
     def test_string_conversion(self):
         """Test the string conversion method of the GetDmxData class."""

@@ -206,6 +206,9 @@ output), there is a really simple way to support me:
 
 ## Release Notes
 
+### v1.4.4 (2024-08-20)
+* Yet another fix for the dmx post data payload conversion.
+
 ### v1.4.3 (2024-08-20)
 * Fix new `async_get_raw_dmx()` and `async_get_dmx()` methods.
 * Fix new `GetDmxData.post_data` property.
