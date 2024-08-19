@@ -206,8 +206,12 @@ output), there is a really simple way to support me:
 
 ## Release Notes
 
-### v1.4.2 (2024-08-20)
+### v1.4.3 (2024-08-20)
 * Fix new `async_get_raw_dmx()` and `async_get_dmx()` methods.
+* Fix new `GetDmxData.post_data` property.
+* Update dependencies.
+
+### v1.4.2 (skipped)
 
 ### v1.4.1 (2024-08-18)
 * Update dependencies
