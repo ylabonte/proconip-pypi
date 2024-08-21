@@ -165,6 +165,8 @@ class DataObject:
                 return "Off"
             case 3:
                 return "On"
+            case _:
+                raise ValueError(f"Unexpected value {self._value}")
 
     @property
     def name(self) -> str:
@@ -424,9 +426,9 @@ class GetStateData:
 
     def is_dosage_relay(
         self,
-        relay_object: Relay = None,
-        data_object: DataObject = None,
-        relay_id: int = None,
+        relay_object: Relay | None = None,
+        data_object: DataObject | None = None,
+        relay_id: int | None = None,
     ) -> bool:
         """Returns true if the given relay_object OR data_object OR column refers to a dosage
         control relay."""
@@ -657,7 +659,7 @@ class GetStateData:
         """Returns a list of all relays as Relay instances."""
         return self.relays() + self.external_relays()
 
-    def determine_overall_relay_bit_state(self) -> [int, int]:
+    def determine_overall_relay_bit_state(self) -> list[int]:
         """Determine the overall relay a bit state from the current state."""
         relays = self.relays()
         bit_state = [255, 0]
