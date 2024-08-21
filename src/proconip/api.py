@@ -96,6 +96,7 @@ async def async_post_usrcfg_cgi(
         async with async_timeout.timeout(10):
             response = await client_session.post(
                 url=url,
+                headers={"Content-Type": "x-www-form-urlencoded"},
                 data=payload,
                 auth=BasicAuth(
                     login=config.username,
