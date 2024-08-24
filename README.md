@@ -206,6 +206,10 @@ output), there is a really simple way to support me:
 
 ## Release Notes
 
+### v1.4.5 (2024-08-24)
+* Add appropriate `Content-Type` header for post requests.
+* Fix some typing hints.
+
 ### v1.4.4 (2024-08-20)
 * Yet another fix for the dmx post data payload conversion.
 
