@@ -206,6 +206,10 @@ output), there is a really simple way to support me:
 
 ## Release Notes
 
+### v1.4.6 (2024-08-24)
+* Fix incomplete `Content-Type` header. 🤦‍♂️  
+  _(note to myself: do not publish new releases after 3am!)_
+
 ### v1.4.5 (2024-08-24)
 * Add appropriate `Content-Type` header for post requests.
 * Fix some typing hints.

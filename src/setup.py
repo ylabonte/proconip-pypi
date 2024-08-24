@@ -8,4 +8,4 @@ install_requires = [
     "yarl>=1.9",
 ]
 
-setup(name="proconip", version="1.4.5", packages=find_packages())
+setup(name="proconip", version="1.4.6", packages=find_packages())
