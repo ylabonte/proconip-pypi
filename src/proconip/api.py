@@ -25,34 +25,41 @@ from .definitions import (
 )
 
 
-async def async_get_raw_state(
+async def async_get_raw_data(
     client_session: ClientSession,
     config: ConfigObject,
+    url: URL,
 ) -> str:
-    """Get raw data (csv string) from the GetState.csv interface."""
-    url = URL(config.base_url).with_path(API_PATH_GET_STATE)
+    """Request data and return raw response string."""
+    auth = BasicAuth(config.username, config.password)
     try:
         async with async_timeout.timeout(10):
-            response = await client_session.get(
-                url,
-                auth=BasicAuth(config.username, password=config.password),
-            )
+            response = await client_session.get(url, auth=auth)
             if response.status in (401, 403):
                 raise BadCredentialsException("Invalid credentials")
             response.raise_for_status()
             return await response.text()
     except asyncio.TimeoutError as exception:
         raise ProconipApiException(
-            "Timeout error fetching data",
+            f"API request timed out ({exception})",
         ) from exception
     except (ClientError, socket.gaierror) as exception:
         raise ProconipApiException(
-            "Error fetching data",
+            f"API request failed ({exception})",
         ) from exception
     except Exception as exception:  # pylint: disable=broad-except
         raise BadStatusCodeException(
-            "Unexpected response",
+            f"API request failed with unexpected error ({exception})",
         ) from exception
+
+
+async def async_get_raw_state(
+    client_session: ClientSession,
+    config: ConfigObject,
+) -> str:
+    """Get raw data (csv string) from the GetState.csv interface."""
+    url = URL(config.base_url).with_path(API_PATH_GET_STATE)
+    return await async_get_raw_data(client_session, config, url)
 
 
 async def async_get_state(
@@ -92,32 +99,28 @@ async def async_post_usrcfg_cgi(
 ) -> str:
     """Send post request to the /usrcfg.cgi endpoint."""
     url = URL(config.base_url).with_path(API_PATH_USRCFG)
+    auth = BasicAuth(config.username, config.password)
+    headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
     try:
         async with async_timeout.timeout(10):
             response = await client_session.post(
-                url=url,
-                headers={
-                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
-                },
-                data=payload,
-                auth=BasicAuth(
-                    login=config.username,
-                    password=config.password,
-                ),
+                url=url, headers=headers, data=payload, auth=auth
             )
+            if response.status in (401, 403):
+                raise BadCredentialsException("Invalid credentials")
             response.raise_for_status()
             return await response.text()
     except asyncio.TimeoutError as exception:
         raise ProconipApiException(
-            "Timeout error fetching data",
+            f"API request timed out ({exception})",
         ) from exception
     except (ClientError, socket.gaierror) as exception:
         raise ProconipApiException(
-            "Error fetching data",
+            f"API request failed ({exception})",
         ) from exception
     except Exception as exception:  # pylint: disable=broad-except
         raise BadStatusCodeException(
-            "Unexpected response",
+            f"API request failed with unexpected error ({exception})",
         ) from exception
 
 
@@ -239,29 +242,7 @@ async def async_start_dosage(
     """Start manual dosage for given target and duration."""
     query = f"MAN_DOSAGE={dosage_target},{dosage_duration}"
     url = URL(config.base_url).with_path(API_PATH_COMMAND).with_query(query)
-    try:
-        async with async_timeout.timeout(10):
-            response = await client_session.get(
-                url=url,
-                auth=BasicAuth(
-                    login=config.username,
-                    password=config.password,
-                ),
-            )
-            response.raise_for_status()
-            return await response.text()
-    except asyncio.TimeoutError as exception:
-        raise TimeoutException(
-            "Timeout error fetching data",
-        ) from exception
-    except (ClientError, socket.gaierror) as exception:
-        raise ProconipApiException(
-            "Error fetching data",
-        ) from exception
-    except Exception as exception:  # pylint: disable=broad-except
-        raise BadStatusCodeException(
-            "Unexpected response",
-        ) from exception
+    return await async_get_raw_data(client_session, config, url)
 
 
 class DosageControl:
@@ -318,29 +299,7 @@ async def async_get_raw_dmx(
 ) -> str:
     """Get raw data (csv string) from the GetState.csv interface."""
     url = URL(config.base_url).with_path(API_PATH_GET_DMX)
-    try:
-        async with async_timeout.timeout(10):
-            response = await client_session.get(
-                url=url,
-                auth=BasicAuth(
-                    login=config.username,
-                    password=config.password,
-                ),
-            )
-            response.raise_for_status()
-            return await response.text()
-    except asyncio.TimeoutError as exception:
-        raise TimeoutException(
-            "Timeout error fetching data",
-        ) from exception
-    except (ClientError, socket.gaierror) as exception:
-        raise ProconipApiException(
-            "Error fetching data",
-        ) from exception
-    except Exception as exception:  # pylint: disable=broad-except
-        raise BadStatusCodeException(
-            "Unexpected response",
-        ) from exception
+    return await async_get_raw_data(client_session, config, url)
 
 
 async def async_get_dmx(
