@@ -206,6 +206,11 @@ output), there is a really simple way to support me:
 
 ## Release Notes
 
+### v1.4.7 (2024-09-07)
+* Code refactoring
+* Unification of exception handling
+* Updated setuptools
+
 ### v1.4.6 (2024-08-24)
 * Fix incomplete `Content-Type` header. 🤦‍♂️  
   _(note to myself: do not publish new releases after 3am!)_
