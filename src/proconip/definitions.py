@@ -256,11 +256,11 @@ class DataObject:
         """
         if self._value == 0:
             return "Auto (off)"
-        elif self._value == 1:
+        if self._value == 1:
             return "Auto (on)"
-        elif self._value == 2:
+        if self._value == 2:
             return "Off"
-        elif self._value == 3:
+        if self._value == 3:
             return "On"
         raise ValueError(f"Unexpected relay value {self._value}")
 
