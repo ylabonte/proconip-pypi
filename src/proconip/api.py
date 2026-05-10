@@ -205,35 +205,69 @@ class GetState:
     call `async_get_state()` (parsed) or `async_get_raw_state()` (CSV) without
     repeating those arguments each time.
 
+    The constructor also binds a default `timeout` for every call made via
+    this wrapper. Each method then accepts an optional per-call `timeout`
+    that overrides the bound default when supplied.
+
     Example:
         ```python
         async with aiohttp.ClientSession() as session:
-            api = GetState(session, config)
-            state = await api.async_get_state()
+            api = GetState(session, config, timeout=15.0)
+            state = await api.async_get_state()              # uses 15.0 s
+            quick = await api.async_get_state(timeout=2.0)   # overrides to 2.0 s
             print(state.ph_electrode.display_value)
         ```
     """
 
-    def __init__(self, client_session: ClientSession, config: ConfigObject):
-        """Bind the session and config used by every method on this instance."""
+    def __init__(
+        self,
+        client_session: ClientSession,
+        config: ConfigObject,
+        timeout: float = 10.0,
+    ):
+        """Bind the session, config, and default per-request timeout.
+
+        Args:
+            client_session: An open `aiohttp.ClientSession`.
+            config: Controller configuration.
+            timeout: Default per-request timeout in seconds, used when a
+                method is called without its own ``timeout`` argument.
+        """
         self.client_session = client_session
         self.config = config
+        self.timeout = timeout
 
-    async def async_get_raw_state(self) -> str:
+    async def async_get_raw_state(self, timeout: float | None = None) -> str:
         """Fetch the raw `/GetState.csv` body using the bound session and config.
+
+        Args:
+            timeout: Override for this call only. If ``None``, the timeout
+                bound in `__init__` is used.
 
         See `async_get_raw_state` (the free function) for the full description
         of behavior and raised exceptions.
         """
-        return await async_get_raw_state(self.client_session, self.config)
+        return await async_get_raw_state(
+            self.client_session,
+            self.config,
+            timeout=self.timeout if timeout is None else timeout,
+        )
 
-    async def async_get_state(self) -> GetStateData:
+    async def async_get_state(self, timeout: float | None = None) -> GetStateData:
         """Fetch and parse the controller state into a `GetStateData` instance.
+
+        Args:
+            timeout: Override for this call only. If ``None``, the timeout
+                bound in `__init__` is used.
 
         See `async_get_state` (the free function) for the full description of
         behavior and raised exceptions.
         """
-        return await async_get_state(self.client_session, self.config)
+        return await async_get_state(
+            self.client_session,
+            self.config,
+            timeout=self.timeout if timeout is None else timeout,
+        )
 
 
 async def async_post_usrcfg_cgi(
@@ -428,6 +462,10 @@ class RelaySwitch:
     Aggregated relay IDs run from 0 to 7 for the eight built-in relays and 8
     to 15 for the eight optional external relays.
 
+    The constructor also binds a default `timeout` for every call made via
+    this wrapper. Each method then accepts an optional per-call `timeout`
+    that overrides the bound default when supplied.
+
     Example:
         ```python
         rs = RelaySwitch(session, config)
@@ -436,13 +474,37 @@ class RelaySwitch:
         ```
     """
 
-    def __init__(self, client_session: ClientSession, config: ConfigObject):
-        """Bind the session and config used by every method on this instance."""
+    def __init__(
+        self,
+        client_session: ClientSession,
+        config: ConfigObject,
+        timeout: float = 10.0,
+    ):
+        """Bind the session, config, and default per-request timeout.
+
+        Args:
+            client_session: An open `aiohttp.ClientSession`.
+            config: Controller configuration.
+            timeout: Default per-request timeout in seconds, used when a
+                method is called without its own ``timeout`` argument.
+        """
         self.client_session = client_session
         self.config = config
+        self.timeout = timeout
 
-    async def async_switch_on(self, current_state: GetStateData, relay_id: int) -> str:
+    async def async_switch_on(
+        self,
+        current_state: GetStateData,
+        relay_id: int,
+        timeout: float | None = None,
+    ) -> str:
         """Switch the relay identified by ``relay_id`` to manual ON.
+
+        Args:
+            current_state: A recent `GetStateData` snapshot.
+            relay_id: Aggregated relay ID (0–15).
+            timeout: Override for this call only. If ``None``, the timeout
+                bound in `__init__` is used.
 
         Resolves the relay ID against ``current_state`` and delegates to the
         free function `async_switch_on`. See it for the full description of
@@ -454,10 +516,22 @@ class RelaySwitch:
             config=self.config,
             current_state=current_state,
             relay=current_state.get_relay(relay_id),
+            timeout=self.timeout if timeout is None else timeout,
         )
 
-    async def async_switch_off(self, current_state: GetStateData, relay_id: int) -> str:
+    async def async_switch_off(
+        self,
+        current_state: GetStateData,
+        relay_id: int,
+        timeout: float | None = None,
+    ) -> str:
         """Switch the relay identified by ``relay_id`` to manual OFF.
+
+        Args:
+            current_state: A recent `GetStateData` snapshot.
+            relay_id: Aggregated relay ID (0–15).
+            timeout: Override for this call only. If ``None``, the timeout
+                bound in `__init__` is used.
 
         Resolves the relay ID against ``current_state`` and delegates to the
         free function `async_switch_off`. See it for the full description of
@@ -468,10 +542,22 @@ class RelaySwitch:
             config=self.config,
             current_state=current_state,
             relay=current_state.get_relay(relay_id),
+            timeout=self.timeout if timeout is None else timeout,
         )
 
-    async def async_set_auto_mode(self, current_state: GetStateData, relay_id: int) -> str:
+    async def async_set_auto_mode(
+        self,
+        current_state: GetStateData,
+        relay_id: int,
+        timeout: float | None = None,
+    ) -> str:
         """Hand the relay identified by ``relay_id`` back to AUTO mode.
+
+        Args:
+            current_state: A recent `GetStateData` snapshot.
+            relay_id: Aggregated relay ID (0–15).
+            timeout: Override for this call only. If ``None``, the timeout
+                bound in `__init__` is used.
 
         Resolves the relay ID against ``current_state`` and delegates to the
         free function `async_set_auto_mode`. See it for the full description
@@ -482,6 +568,7 @@ class RelaySwitch:
             config=self.config,
             current_state=current_state,
             relay=current_state.get_relay(relay_id),
+            timeout=self.timeout if timeout is None else timeout,
         )
 
 
@@ -530,6 +617,10 @@ class DosageControl:
     trigger dosing per chemical without specifying the `DosageTarget` enum
     each time.
 
+    The constructor also binds a default `timeout` for every call made via
+    this wrapper. Each method then accepts an optional per-call `timeout`
+    that overrides the bound default when supplied.
+
     Example:
         ```python
         dc = DosageControl(session, config)
@@ -537,13 +628,33 @@ class DosageControl:
         ```
     """
 
-    def __init__(self, client_session: ClientSession, config: ConfigObject):
-        """Bind the session and config used by every method on this instance."""
+    def __init__(
+        self,
+        client_session: ClientSession,
+        config: ConfigObject,
+        timeout: float = 10.0,
+    ):
+        """Bind the session, config, and default per-request timeout.
+
+        Args:
+            client_session: An open `aiohttp.ClientSession`.
+            config: Controller configuration.
+            timeout: Default per-request timeout in seconds, used when a
+                method is called without its own ``timeout`` argument.
+        """
         self.client_session = client_session
         self.config = config
+        self.timeout = timeout
 
-    async def async_chlorine_dosage(self, dosage_duration: int) -> str:
+    async def async_chlorine_dosage(
+        self, dosage_duration: int, timeout: float | None = None
+    ) -> str:
         """Run the chlorine dosage pump for ``dosage_duration`` seconds.
+
+        Args:
+            dosage_duration: Run time in seconds.
+            timeout: Override for this call only. If ``None``, the timeout
+                bound in `__init__` is used.
 
         Subject to the same controller-side safety interlocks as manual
         dosage from the web UI. See `async_start_dosage` for full behavior
@@ -554,10 +665,18 @@ class DosageControl:
             config=self.config,
             dosage_target=DosageTarget.CHLORINE,
             dosage_duration=dosage_duration,
+            timeout=self.timeout if timeout is None else timeout,
         )
 
-    async def async_ph_minus_dosage(self, dosage_duration: int) -> str:
+    async def async_ph_minus_dosage(
+        self, dosage_duration: int, timeout: float | None = None
+    ) -> str:
         """Run the pH- dosage pump for ``dosage_duration`` seconds.
+
+        Args:
+            dosage_duration: Run time in seconds.
+            timeout: Override for this call only. If ``None``, the timeout
+                bound in `__init__` is used.
 
         Subject to the same controller-side safety interlocks as manual
         dosage from the web UI. See `async_start_dosage` for full behavior
@@ -568,10 +687,16 @@ class DosageControl:
             config=self.config,
             dosage_target=DosageTarget.PH_MINUS,
             dosage_duration=dosage_duration,
+            timeout=self.timeout if timeout is None else timeout,
         )
 
-    async def async_ph_plus_dosage(self, dosage_duration: int) -> str:
+    async def async_ph_plus_dosage(self, dosage_duration: int, timeout: float | None = None) -> str:
         """Run the pH+ dosage pump for ``dosage_duration`` seconds.
+
+        Args:
+            dosage_duration: Run time in seconds.
+            timeout: Override for this call only. If ``None``, the timeout
+                bound in `__init__` is used.
 
         Subject to the same controller-side safety interlocks as manual
         dosage from the web UI. See `async_start_dosage` for full behavior
@@ -582,6 +707,7 @@ class DosageControl:
             config=self.config,
             dosage_target=DosageTarget.PH_PLUS,
             dosage_duration=dosage_duration,
+            timeout=self.timeout if timeout is None else timeout,
         )
 
 
@@ -687,6 +813,10 @@ class DmxControl:
     Construct once with your `aiohttp.ClientSession` and `ConfigObject`, then
     read or write DMX channels without repeating those arguments each time.
 
+    The constructor also binds a default `timeout` for every call made via
+    this wrapper. Each method then accepts an optional per-call `timeout`
+    that overrides the bound default when supplied.
+
     Example:
         ```python
         dc = DmxControl(session, config)
@@ -697,29 +827,63 @@ class DmxControl:
         ```
     """
 
-    def __init__(self, client_session: ClientSession, config: ConfigObject):
-        """Bind the session and config used by every method on this instance."""
+    def __init__(
+        self,
+        client_session: ClientSession,
+        config: ConfigObject,
+        timeout: float = 10.0,
+    ):
+        """Bind the session, config, and default per-request timeout.
+
+        Args:
+            client_session: An open `aiohttp.ClientSession`.
+            config: Controller configuration.
+            timeout: Default per-request timeout in seconds, used when a
+                method is called without its own ``timeout`` argument.
+        """
         self.client_session = client_session
         self.config = config
+        self.timeout = timeout
 
-    async def async_get_raw_dmx(self) -> str:
+    async def async_get_raw_dmx(self, timeout: float | None = None) -> str:
         """Fetch the raw `/GetDmx.csv` body using the bound session and config.
+
+        Args:
+            timeout: Override for this call only. If ``None``, the timeout
+                bound in `__init__` is used.
 
         See `async_get_raw_dmx` (the free function) for the full description
         of behavior and raised exceptions.
         """
-        return await async_get_raw_dmx(self.client_session, self.config)
+        return await async_get_raw_dmx(
+            self.client_session,
+            self.config,
+            timeout=self.timeout if timeout is None else timeout,
+        )
 
-    async def async_get_dmx(self) -> GetDmxData:
+    async def async_get_dmx(self, timeout: float | None = None) -> GetDmxData:
         """Fetch and parse the current DMX state into a `GetDmxData` instance.
+
+        Args:
+            timeout: Override for this call only. If ``None``, the timeout
+                bound in `__init__` is used.
 
         See `async_get_dmx` (the free function) for the full description of
         behavior and raised exceptions.
         """
-        return await async_get_dmx(self.client_session, self.config)
+        return await async_get_dmx(
+            self.client_session,
+            self.config,
+            timeout=self.timeout if timeout is None else timeout,
+        )
 
-    async def async_set(self, data: GetDmxData) -> str:
+    async def async_set(self, data: GetDmxData, timeout: float | None = None) -> str:
         """Push the given DMX state back to the controller.
+
+        Args:
+            data: The `GetDmxData` to write.
+            timeout: Override for this call only. If ``None``, the timeout
+                bound in `__init__` is used.
 
         See `async_set_dmx` (the free function) for the full description of
         behavior and raised exceptions.
@@ -728,4 +892,5 @@ class DmxControl:
             client_session=self.client_session,
             config=self.config,
             dmx_states=data,
+            timeout=self.timeout if timeout is None else timeout,
         )
