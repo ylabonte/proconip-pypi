@@ -710,6 +710,9 @@ class GetDmxData:
         while line < len(lines) and len(lines[line].strip()) < 1:
             line += 1
 
+        if line >= len(lines):
+            raise InvalidPayloadException("Empty or missing DMX payload")
+
         for idx, value in enumerate(lines[line].split(",")):
             self._channels.append(DmxChannelData(idx, int(value)))
 
