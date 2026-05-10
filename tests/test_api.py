@@ -33,11 +33,6 @@ GET_DMX_URL = f"{BASE_URL}/GetDmx.csv"
 SIMPLE_DMX_CSV = "0,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150\n"
 
 
-@pytest.fixture
-def config() -> ConfigObject:
-    return ConfigObject(BASE_URL, "admin", "admin")
-
-
 # ---------------------------------------------------------------------------
 # async_get_raw_state
 # ---------------------------------------------------------------------------
