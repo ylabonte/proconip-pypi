@@ -427,3 +427,25 @@ def test_get_dmx_empty_payload_raises(payload: str) -> None:
 def test_get_state_truncated_payload_raises(payload: str) -> None:
     with pytest.raises(InvalidPayloadException, match="incomplete"):
         GetStateData(payload)
+
+
+def test_get_state_mismatched_column_counts_raises() -> None:
+    """Names/units/offsets/gains/values rows must all have the same column count."""
+    payload = (
+        "SYSINFO,1.7.3,0,0,0,0,0,0,0,0\n"
+        "name1,name2\n"  # 2 columns
+        "unit1,unit2,unit3\n"  # 3 columns — mismatch
+        "0,0\n"
+        "1,1\n"
+        "10,20\n"
+    )
+    with pytest.raises(InvalidPayloadException, match="column counts don't line up"):
+        GetStateData(payload)
+
+
+@pytest.mark.parametrize("count", [0, 1, 15, 17, 32])
+def test_get_dmx_wrong_channel_count_raises(count: int) -> None:
+    """GetDmx.csv must contain exactly 16 comma-separated channels."""
+    payload = ",".join(["0"] * count) if count else ""
+    with pytest.raises(InvalidPayloadException):
+        GetDmxData(payload)

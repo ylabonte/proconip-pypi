@@ -452,10 +452,10 @@ class GetStateData:
                 controller. Leading blank lines are tolerated.
 
         Raises:
-            InvalidPayloadException: If the payload is empty or has fewer
-                than six non-blank lines (which means it cannot contain the
-                full SYSINFO + names + units + offsets + gains + values
-                rows).
+            InvalidPayloadException: If the payload is empty, has fewer than
+                six non-blank lines, or has rows whose column counts do not
+                line up (names / units / offsets / gains / raw values must
+                all have the same number of comma-separated entries).
             ValueError: If any of the numeric rows contains a value that is
                 not parseable as a float.
         """
@@ -476,6 +476,20 @@ class GetStateData:
         self._data_offsets = [float(v) for v in lines[line + 3].split(",")]
         self._data_gain = [float(v) for v in lines[line + 4].split(",")]
         self._data_raw_values = [float(v) for v in lines[line + 5].split(",")]
+
+        column_count = len(self._data_names)
+        row_lengths = {
+            "names": column_count,
+            "units": len(self._data_units),
+            "offsets": len(self._data_offsets),
+            "gains": len(self._data_gain),
+            "raw_values": len(self._data_raw_values),
+        }
+        if len(set(row_lengths.values())) != 1:
+            raise InvalidPayloadException(
+                "GetState.csv column counts don't line up: "
+                + ", ".join(f"{k}={v}" for k, v in row_lengths.items())
+            )
 
         self._parse_system_info()
         self._parse()
@@ -1009,8 +1023,8 @@ class GetDmxData:
                 parsed.
 
         Raises:
-            InvalidPayloadException: If the payload is empty or
-                whitespace-only.
+            InvalidPayloadException: If the payload is empty, whitespace-only,
+                or does not contain exactly 16 comma-separated channel values.
             ValueError: If a channel value cannot be parsed as an integer.
         """
         self._raw_data = raw_data
@@ -1024,7 +1038,12 @@ class GetDmxData:
         if line >= len(lines):
             raise InvalidPayloadException("Empty or missing DMX payload")
 
-        for idx, value in enumerate(lines[line].split(",")):
+        values = lines[line].split(",")
+        if len(values) != 16:
+            raise InvalidPayloadException(
+                f"GetDmx.csv must contain exactly 16 channels; got {len(values)}"
+            )
+        for idx, value in enumerate(values):
             self._channels.append(DmxChannelData(idx, int(value)))
 
     def __getitem__(self, index: int) -> DmxChannelData:
