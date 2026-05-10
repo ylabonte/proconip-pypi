@@ -138,3 +138,7 @@ dmypy.json
 
 # hatch-vcs generated version file (auto-created on pip install -e .)
 src/proconip/_version.py
+
+# mkdocs build output
+site/
+_site/

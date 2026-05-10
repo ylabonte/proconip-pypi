@@ -34,9 +34,16 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["ruff", "mypy", "pre-commit"]
 test = ["pytest", "pytest-asyncio", "pytest-cov", "aioresponses"]
+docs = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]",
+    "mkdocs-include-markdown-plugin",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/ylabonte/proconip-pypi"
+"Documentation" = "https://ylabonte.github.io/proconip-pypi/"
 "Source" = "https://github.com/ylabonte/proconip-pypi"
 "Changelog" = "https://github.com/ylabonte/proconip-pypi/blob/main/CHANGELOG.md"
 "Bug Tracker" = "https://github.com/ylabonte/proconip-pypi/issues"

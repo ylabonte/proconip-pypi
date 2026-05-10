@@ -24,9 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `py.typed` marker (PEP 561) — the package is now typed.
 - `EXTERNAL_RELAY_ID_OFFSET` constant (replaces magic number `8`).
 - `GetDmxData.__iter__` — `for channel in dmx_data:` now works via an explicit iterator.
-- `InvalidPayloadException` class (currently unused internally; available for callers).
-- `configurable timeout` parameter (`timeout: float = 10.0`) on all public async functions.
+- `InvalidPayloadException` class — raised by `GetStateData` and `GetDmxData` when the controller's payload is empty or truncated.
+- `configurable timeout` parameter (`timeout: float = 10.0`) on all public async functions; the timeout now wraps both the request and response body read.
 - `CHANGELOG.md` (this file) — release notes extracted from README.
+- **Documentation site** at <https://ylabonte.github.io/proconip-pypi/> built with MkDocs Material + mkdocstrings; rebuilds on every `main` push and release. Source docstrings audited and expanded throughout the public surface.
+- `CLAUDE.md` — project memory for AI agents (and humans) capturing tech stack, conventions, and pitfalls.
 
 ### Fixed
 
