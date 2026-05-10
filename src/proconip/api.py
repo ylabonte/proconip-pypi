@@ -62,12 +62,12 @@ async def async_get_raw_data(
     auth = BasicAuth(config.username, config.password)
     try:
         async with asyncio.timeout(timeout):
-            response = await client_session.get(url, auth=auth)
+            async with client_session.get(url, auth=auth) as response:
+                return await _handle_response(response)
     except TimeoutError as exc:
         raise TimeoutException("API request timed out") from exc
     except (ClientError, socket.gaierror) as exc:
         raise ProconipApiException(f"API request failed ({exc})") from exc
-    return await _handle_response(response)
 
 
 async def async_get_raw_state(

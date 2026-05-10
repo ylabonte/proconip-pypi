@@ -419,7 +419,7 @@ def test_get_dmx_leading_blank_lines(get_dmx_csv: str) -> None:
 
 @pytest.mark.parametrize("payload", ["", "\n", "   \n\n  "])
 def test_get_dmx_empty_payload_raises(payload: str) -> None:
-    with pytest.raises(InvalidPayloadException, match="empty or whitespace-only"):
+    with pytest.raises(InvalidPayloadException, match="DMX payload"):
         GetDmxData(payload)
 
 

@@ -293,6 +293,11 @@ class GetStateData:
         lines = raw_data.splitlines()
         while line < len(lines) and len(lines[line].strip()) < 1:
             line += 1
+        if len(lines) < line + 6:
+            raise InvalidPayloadException(
+                f"GetState.csv payload is incomplete: expected at least 6 non-blank lines, "
+                f"got {len(lines) - line}"
+            )
         self._system_info = lines[line].split(",")
         self._data_names = lines[line + 1].split(",")
         self._data_units = lines[line + 2].split(",")
@@ -387,27 +392,24 @@ class GetStateData:
 
     def is_dosage_enabled(self, data_entity: DataObject) -> bool:
         """Returns True if dosage is enabled for the given canister or consumption object."""
-        match data_entity.column:
-            case 36 | 39:
-                return self.is_chlorine_dosage_enabled()
-            case 37 | 40:
-                return self.is_ph_minus_dosage_enabled()
-            case 38 | 41:
-                return self.is_ph_plus_dosage_enabled()
-            case _:
-                return False
+        col = data_entity.column
+        if col in (36, 39):
+            return self.is_chlorine_dosage_enabled()
+        if col in (37, 40):
+            return self.is_ph_minus_dosage_enabled()
+        if col in (38, 41):
+            return self.is_ph_plus_dosage_enabled()
+        return False
 
     def get_dosage_relay(self, data_entity: DataObject) -> int | None:
         """Returns the aggregated relay ID for the dosage entity, or None if not applicable."""
-        match data_entity.column:
-            case 36 | 39:
-                return self._chlorine_dosage_relay_id
-            case 37 | 40:
-                return self._ph_minus_dosage_relay_id
-            case 38 | 41:
-                return self._ph_plus_dosage_relay_id
-            case _:
-                return None
+        col = data_entity.column
+        if col in (36, 39):
+            return self._chlorine_dosage_relay_id
+        if col in (37, 40):
+            return self._ph_minus_dosage_relay_id
+        if col in (38, 41):
+            return self._ph_plus_dosage_relay_id
         return None
 
     def is_dosage_relay(
