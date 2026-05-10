@@ -408,6 +408,7 @@ class GetStateData:
                 return self._ph_plus_dosage_relay_id
             case _:
                 return None
+        return None
 
     def is_dosage_relay(
         self,
