@@ -30,8 +30,6 @@ GET_STATE_URL = f"{BASE_URL}/GetState.csv"
 USRCFG_URL = f"{BASE_URL}/usrcfg.cgi"
 GET_DMX_URL = f"{BASE_URL}/GetDmx.csv"
 
-SIMPLE_STATE_CSV = "SYSINFO,1.7.3,0,0,0,0,257,4,4,5\ncol\nunit\n0\n1\n2,0,0,2,2,2,2,2\n"
-
 SIMPLE_DMX_CSV = "0,10,20,30,40,50,60,70,80,90,100,110,120,130,140,150\n"
 
 
