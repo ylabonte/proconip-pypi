@@ -1,23 +1,48 @@
-# Contribution
+# Contributing
 
-## Give ideas
-You can use [issues](https://github.com/ylabonte/proconip-pypi/issues) 
-to give ideas to and discuss with the community. At least I will try to read 
-and respond to every issue (as fast as I can).
+## Development setup
 
-## Contribute code
-The easiest way to contribute to this project would be to fork this repository, 
-make your changes and then stage a pull request, if you think your changes could
-be useful for the rest of the community.
+```bash
+git clone https://github.com/ylabonte/proconip-pypi.git
+cd proconip-pypi
 
-## Gain maintainership
-If you want to become a maintainer of this project, you can contact me. You will
-not get write access to the `main` branch! This would require too much trust and
-thus reduce the people in question too much. But with the first release version,
-there will be a `develop` branch and if there is someone out there, who wants to 
-help improve this adapter, I would suggest a git-flow workflow where we can review
-each others changes using pull request.
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+
+pip install -e ".[dev,test]"
+pre-commit install
+```
+
+## Running tests
+
+```bash
+pytest                             # run tests with coverage report
+pytest -x                          # stop on first failure
+pytest tests/test_api.py -v        # run a single file
+```
+
+## Code quality
+
+```bash
+ruff check .                       # lint
+ruff format .                      # auto-format
+mypy src                           # type check
+```
+
+Pre-commit hooks run these automatically on `git commit`.
+
+## Submitting changes
+
+1. Fork the repository and create a feature branch from `main`.
+2. Make your changes with tests.
+3. Ensure `pytest`, `ruff check .`, and `mypy src` all pass locally.
+4. Open a pull request against `main`. Use the PR template.
+
+## Ideas and questions
+
+Use [GitHub Issues](https://github.com/ylabonte/proconip-pypi/issues) for
+feature requests, bug reports, and questions so the community can benefit.
 
 ## Contact
-Feel free to contact me <yannic.labonte@gmail.com>, if you have any questions or 
-concerns.
+
+Yannic Labonte <yannic.labonte@gmail.com>

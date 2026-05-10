@@ -135,3 +135,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# hatch-vcs generated version file (auto-created on pip install -e .)
+src/proconip/_version.py

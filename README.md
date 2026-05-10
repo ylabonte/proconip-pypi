@@ -1,15 +1,17 @@
 # Python package for the ProCon.IP Pool Controller
 
-[![Pylint](https://github.com/ylabonte/proconip-pypi/actions/workflows/pylint.yml/badge.svg)](https://github.com/ylabonte/proconip-pypi/actions/workflows/pylint.yml)
-[![Unittest](https://github.com/ylabonte/proconip-pypi/actions/workflows/unittest.yml/badge.svg)](https://github.com/ylabonte/proconip-pypi/actions/workflows/unittest.yml)
+[![Lint](https://github.com/ylabonte/proconip-pypi/actions/workflows/lint.yml/badge.svg)](https://github.com/ylabonte/proconip-pypi/actions/workflows/lint.yml)
+[![Test](https://github.com/ylabonte/proconip-pypi/actions/workflows/test.yml/badge.svg)](https://github.com/ylabonte/proconip-pypi/actions/workflows/test.yml)
 [![CodeQL](https://github.com/ylabonte/proconip-pypi/actions/workflows/codeql.yml/badge.svg)](https://github.com/ylabonte/proconip-pypi/actions/workflows/codeql.yml)
-[![PyPi Package release](https://github.com/ylabonte/proconip-pypi/actions/workflows/python-publish.yml/badge.svg)](https://github.com/ylabonte/proconip-pypi/actions/workflows/python-publish.yml)
+[![PyPI Package release](https://github.com/ylabonte/proconip-pypi/actions/workflows/python-publish.yml/badge.svg)](https://github.com/ylabonte/proconip-pypi/actions/workflows/python-publish.yml)
 
 [![PyPI](https://img.shields.io/pypi/v/proconip?label=Current%20Release)](https://pypi.org/project/proconip/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/proconip)](https://pypi.org/project/proconip/)
 
 ## Overview
 
 * [Introduction (_What is this library for?_)](#introduction)
+* [Requirements](#requirements)
 * [Installation](#installation)
 * [Usage](#usage-examples)
   * [Reading the current state](#reading-the-current-state)
@@ -26,19 +28,33 @@
 ## Introduction
 
 The name of this library refers to the [ProCon.IP pool controller](#a-brief-description-of-the-proconip-pool-controller).
-It is somehow a port of my [procon-ip](https://github.com/ylabonte/procon-ip) 
-TypeScript library (available as [NPM Package](https://www.npmjs.com/package/procon-ip)). 
-As the TypeScript library was a byproduct of my ioBroker adapter for the pool 
-controller unit, this library is primary intended for the implementation of a 
+It is a port of my [procon-ip](https://github.com/ylabonte/procon-ip)
+TypeScript library (available as [NPM Package](https://www.npmjs.com/package/procon-ip)).
+As the TypeScript library was a byproduct of my ioBroker adapter for the pool
+controller unit, this library is primarily intended for the implementation of a
 Home Assistant integration.
 
-Documentation might follow. Until this please take a look at the sources. I
-tried to keep it simple and readable. An IDE with proper auto-completion should
-help understand and use the library without further documentation.
+The library is fully typed (PEP 561). An IDE with auto-completion should make
+it straightforward to use without additional documentation.
 
-Feel free to ask questions by using github's issues system, so others can take
-advantage, contribute and are able to find the answer if they have a similar 
-question. Thanks! :)
+Feel free to ask questions via [GitHub Issues](https://github.com/ylabonte/proconip-pypi/issues)
+so others can benefit from the answers too. Thanks!
+
+## Requirements
+
+- **Python ≥ 3.13**
+- `aiohttp >= 3.10, < 4`
+- `yarl >= 1.9, < 2`
+
+These dependency ranges are compatible with
+[Home Assistant Core 2026.5](https://www.home-assistant.io/) pins
+(`aiohttp==3.13.5`, `yarl==1.23.0`).
+
+> **v2.0.0 breaking changes** — see [CHANGELOG.md](CHANGELOG.md) for details:
+> - Python ≥ 3.13 required (was ≥ 3.10)
+> - `async-timeout` dependency removed (use `asyncio.timeout` from stdlib)
+> - `Relay` value semantics fixed (offset+gain applied exactly once)
+> - `TimeoutException` is now actually raised for timeouts
 
 ## Installation
 
@@ -60,8 +76,7 @@ In both cases you can add `--upgrade` to update to the latest version.
 ```python
 import asyncio
 import aiohttp
-from proconip.definitions import ConfigObject
-from proconip.api import GetState
+from proconip import ConfigObject, GetState
 
 
 async def reading_data_example():
@@ -72,9 +87,9 @@ async def reading_data_example():
     await client_session.close()
     print(f"Redox (Chlor): {data.redox_electrode.display_value}")
     print(f"pH: {data.ph_electrode.display_value}")
-    for relay in (relay for relay in data.relays() if relay.name != "n.a."):
+    for relay in (r for r in data.relays() if r.name != "n.a."):
         print(f"{relay.name}: {relay.display_value}")
-    for temp in (temp for temp in data.temperature_objects if temp.name != "n.a."):
+    for temp in (t for t in data.temperature_objects if t.name != "n.a."):
         print(f"{temp.name}: {temp.display_value}")
 
 
@@ -86,8 +101,7 @@ asyncio.run(reading_data_example())
 ```python
 import asyncio
 import aiohttp
-from proconip.definitions import ConfigObject
-from proconip.api import GetState, RelaySwitch
+from proconip import ConfigObject, GetState, RelaySwitch
 
 
 async def relay_switching_example():
@@ -119,13 +133,12 @@ asyncio.run(relay_switching_example())
 ### Starting manual dosage
 
 Manual dosage depends on the same factors as if started from the web interface
-of the pool control itself. 
+of the pool control itself.
 
 ```python
 import asyncio
 import aiohttp
-from proconip.definitions import ConfigObject
-from proconip.api import DosageControl
+from proconip import ConfigObject, DosageControl
 
 
 async def manual_dosage_example():
@@ -140,13 +153,12 @@ async def manual_dosage_example():
 asyncio.run(manual_dosage_example())
 ```
 
-### Reading and changing DMX channels states
+### Reading and changing DMX channel states
 
 ```python
 import asyncio
 import aiohttp
-from proconip.definitions import ConfigObject
-from proconip.api import DmxControl
+from proconip import ConfigObject, DmxControl
 
 
 async def dmx_example():
@@ -206,84 +218,7 @@ output), there is a really simple way to support me:
 
 ## Release Notes
 
-### v1.4.7 (2024-09-07)
-* Code refactoring
-* Unification of exception handling
-* Updated setuptools
-
-### v1.4.6 (2024-08-24)
-* Fix incomplete `Content-Type` header. 🤦‍♂️  
-  _(note to myself: do not publish new releases after 3am!)_
-
-### v1.4.5 (2024-08-24)
-* Add appropriate `Content-Type` header for post requests.
-* Fix some typing hints.
-
-### v1.4.4 (2024-08-20)
-* Yet another fix for the dmx post data payload conversion.
-
-### v1.4.3 (2024-08-20)
-* Fix new `async_get_raw_dmx()` and `async_get_dmx()` methods.
-* Fix new `GetDmxData.post_data` property.
-* Update dependencies.
-
-### v1.4.2 (skipped)
-
-### v1.4.1 (2024-08-18)
-* Update dependencies
-
-### v1.4.0 (2024-06-24)
-* Introduce new API class `DmxControl` with three methods:
-  * `async_get_raw_dmx()` to get the raw body string of the '/GetDmx.csv'.
-  * `async_get_dmx()` to get structured DMX channel states.
-  * `async_set()` to set DMX channel states.
-
-### v1.3.1 (2024-05-09)
-* Add dedicated `api.TimeoutException` to raise for connection timeouts.
-* Add dependabot with `versioning-strategy: "increase"` and an auto-merge workflow for automated updates on the github 
-  `main` branch.
-* Add code scanning (CodeQL) workflow.
-
-### v1.3.0 (2023-08-16)
-* Add `GetStateData.get_relays()` to get all available Relay instances.
-
-### v1.2.7 (2023-07-04)
-* Fix calculation formula for actual values (`offset + gain * raw`).
-
-### v1.2.6 (2023-06-20)
-* Fix DosageTarget enum and return value of `DosageControl.async_ph_plus_dosage`.
-
-### v1.2.5 (2023-06-18)
-* Fix return type/value of `DosageControl.async_ph_plus_dosage()`
-
-### v1.2.4 (2023-06-18)
-* Refactor request exception handling
-
-### v1.2.3 (2023-06-17)
-* Fix api methods to produce `BadCredentialsExceptions` in case of 401 and 403 responses.
-
-### v1.2.2 (2023-06-12)
-* Fix typo in `BadStatusCodeException`
-
-### v1.2.1 (2023-06-12)
-* Avoid invalid operations regarding dosage control relays.
-
-### v1.2.0 (2023-06-12)
-* Add DosageControl abilities.
-
-### v1.1.0 (2023-05-23)
-*  Unify api methods and naming conventions:
-  * Same names for functions and class methods with same functionality.
-  * `async_` prefixes for all async functions/methods.
-
-### v1.0.0 (2023-05-21)
-* Fix post data for switching relays.
-
-### v0.0.2 (2023-05-18)
-* Add relay switching capabilities.
-
-### v0.0.1 (2023-04-23)
-* Initial release with data reading capabilities.
+See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 
 ## Disclaimer
 
