@@ -254,17 +254,15 @@ class DataObject:
             ValueError: If `self._value` is not one of the four valid relay
                 states (0, 1, 2, 3). Indicates a malformed CSV payload.
         """
-        match self._value:
-            case 0:
-                return "Auto (off)"
-            case 1:
-                return "Auto (on)"
-            case 2:
-                return "Off"
-            case 3:
-                return "On"
-            case _:
-                raise ValueError(f"Unexpected relay value {self._value}")
+        if self._value == 0:
+            return "Auto (off)"
+        if self._value == 1:
+            return "Auto (on)"
+        if self._value == 2:
+            return "Off"
+        if self._value == 3:
+            return "On"
+        raise ValueError(f"Unexpected relay value {self._value}")
 
     @property
     def name(self) -> str:
