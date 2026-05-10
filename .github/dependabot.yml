@@ -7,6 +7,8 @@ updates:
       interval: "weekly"
     assignees:
       - ylabonte
+    commit-message:
+      prefix: "ci"
     groups:
       actions:
         patterns:
@@ -27,13 +29,14 @@ updates:
         patterns:
           - "aiohttp"
           - "yarl"
-          - "multidict"
-          - "propcache"
       dev-tools:
         patterns:
           - "ruff"
           - "mypy"
           - "pre-commit"
           - "pytest*"
-          - "pytest-*"
           - "aioresponses"
+      docs-tools:
+        patterns:
+          - "mkdocs*"
+          - "mkdocstrings*"
