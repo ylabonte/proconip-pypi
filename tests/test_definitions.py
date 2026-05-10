@@ -19,6 +19,7 @@ from proconip.definitions import (
     DmxChannelData,
     GetDmxData,
     GetStateData,
+    InvalidPayloadException,
     Relay,
 )
 
@@ -409,3 +410,20 @@ def test_get_dmx_leading_blank_lines(get_dmx_csv: str) -> None:
     data = GetDmxData(padded)
     assert data.get_value(0) == 0
     assert data.get_value(15) == 150
+
+
+# ---------------------------------------------------------------------------
+# Payload validation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("payload", ["", "\n", "   \n\n  "])
+def test_get_dmx_empty_payload_raises(payload: str) -> None:
+    with pytest.raises(InvalidPayloadException, match="empty or whitespace-only"):
+        GetDmxData(payload)
+
+
+@pytest.mark.parametrize("payload", ["", "\n", "SYSINFO,1.7.3,0,0,0,0,0,0,0,0\nonly_one_line"])
+def test_get_state_truncated_payload_raises(payload: str) -> None:
+    with pytest.raises(InvalidPayloadException, match="incomplete"):
+        GetStateData(payload)
