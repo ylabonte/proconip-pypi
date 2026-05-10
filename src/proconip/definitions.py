@@ -1,4 +1,24 @@
-"""Defines data structures for the GetState.csv, GetDmx.csv, and usrcfg.cgi APIs."""
+"""Data structures for the ProCon.IP CSV and form-encoded HTTP APIs.
+
+This module contains everything that's needed to describe the controller's
+data shape without making any network calls — typed wrappers around the CSV
+responses, helpers for the bit-field flags they encode, and a few small
+exceptions that get raised when something is malformed.
+
+Path constants (`API_PATH_*`) and category strings (`CATEGORY_*`) are exposed
+because the rest of the library and downstream callers (notably a Home
+Assistant integration) build on them.
+
+The classes you will most often work with are:
+
+- `ConfigObject` — base URL plus credentials.
+- `GetStateData` — parsed `/GetState.csv` response. Exposes individual sensors,
+  relays, dosage flags, and a few derived helpers.
+- `Relay` — convenience wrapper around a relay `DataObject` with on/off and
+  manual/auto interrogation methods.
+- `GetDmxData` / `DmxChannelData` — parsed and mutable representation of the
+  16 DMX channels.
+"""
 
 from collections.abc import Iterator
 from enum import IntEnum
@@ -9,6 +29,9 @@ API_PATH_COMMAND = "/Command.htm"
 API_PATH_GET_DMX = "/GetDmx.csv"
 
 EXTERNAL_RELAY_ID_OFFSET = 8
+"""Offset added to a relay's `category_id` to form its aggregated relay ID
+when it lives on the optional external relay extension. Internal relays
+occupy aggregated IDs 0–7, external relays 8–15."""
 
 CATEGORY_TIME = "time"
 CATEGORY_ANALOG = "analog"
@@ -28,6 +51,8 @@ RESET_ROOT_CAUSE = {
     8: "Watchdog reset",
     16: "SW reset",
 }
+"""Lookup table mapping the controller's reset-root-cause code to a human
+label. The codes are exact values, not bit flags."""
 
 NTP_FAULT_STATE = {
     0: "n.a.",
@@ -36,10 +61,17 @@ NTP_FAULT_STATE = {
     4: "Error (GUI warning, red)",
     65536: "NTP available",
 }
+"""Lookup table mapping NTP fault state codes to human labels. Values 1, 2
+and 4 are severity bit flags that may also appear in combination; the bit
+65536 indicates "NTP synchronisation reached" and is set independently."""
 
 
 class DosageTarget(IntEnum):
-    """Helper enum for async_start_dosage."""
+    """Identifies which dosing pump a manual dosage command should engage.
+
+    The numeric values match the controller's `MAN_DOSAGE` query parameter,
+    so this enum can be used directly in URL building.
+    """
 
     CHLORINE = 0
     PH_MINUS = 1
@@ -47,7 +79,11 @@ class DosageTarget(IntEnum):
 
 
 class ConfigObject:
-    """Configuration to be used with classes that interact with the pool controller."""
+    """Base URL and credentials for talking to a single ProCon.IP controller.
+
+    Instances are plain holders — no network connection is opened until they
+    are passed into one of the API helpers in `proconip.api`.
+    """
 
     def __init__(
         self,
@@ -55,13 +91,37 @@ class ConfigObject:
         username: str,
         password: str,
     ):
+        """Build a config from explicit values.
+
+        Args:
+            base_url: Root URL of the controller, e.g. ``http://192.168.1.50``.
+                The library appends the API paths itself; do not include them
+                here. Plain HTTP is normal — these controllers are LAN-only.
+            username: HTTP Basic auth username (controller default: ``admin``).
+            password: HTTP Basic auth password (controller default: ``admin``).
+        """
         self.base_url = base_url
         self.username = username
         self.password = password
 
     @staticmethod
     def from_dict(data: dict[str, str]) -> "ConfigObject":
-        """Create a ConfigObject from a dictionary."""
+        """Build a `ConfigObject` from a serialized dictionary.
+
+        Useful for restoring a config that was previously written out via
+        `to_dict` (e.g. into a Home Assistant config entry).
+
+        Args:
+            data: A dict containing the keys ``base_url``, ``username``, and
+                ``password``. All three are required.
+
+        Returns:
+            A new `ConfigObject` populated from the dict.
+
+        Raises:
+            ValueError: If any of the required keys is missing. The exception
+                message names the missing key.
+        """
         if "base_url" not in data:
             raise ValueError("base_url is required")
         if "username" not in data:
@@ -71,7 +131,11 @@ class ConfigObject:
         return ConfigObject(data["base_url"], data["username"], data["password"])
 
     def to_dict(self) -> dict[str, str]:
-        """Return a dictionary representation of the object."""
+        """Return a plain dict copy of the config, suitable for serialization.
+
+        The password is stored in the clear — encrypt the dict yourself if it
+        will be persisted somewhere readable.
+        """
         return {
             "base_url": self.base_url,
             "username": self.username,
@@ -80,7 +144,18 @@ class ConfigObject:
 
 
 class DataObject:
-    """Represents a single data unit combining the name, unit, offset, gain, and value columns."""
+    """A single sensor, relay, canister, or consumption channel from `/GetState.csv`.
+
+    Each `DataObject` represents one column of the CSV response, combining the
+    name, unit, offset, gain, and raw value rows that the controller sends. The
+    column index alone determines which category the object falls into (analog,
+    relay, temperature, …) — see the constructor for the exact ranges.
+
+    The actual physical reading is computed once at construction via
+    ``offset + gain * raw_value`` and exposed as `value`. A pre-formatted
+    `display_value` string is also produced; for relay columns it is one of
+    "Auto (off)", "Auto (on)", "Off", or "On".
+    """
 
     _column: int
     _category: str
@@ -102,6 +177,23 @@ class DataObject:
         gain: float,
         value: float,
     ):
+        """Build a `DataObject` from one column's worth of CSV data.
+
+        Args:
+            column: Zero-based column index in the CSV. Determines the category:
+                ``0`` → time, ``1–5`` → analog, ``6–7`` → electrode, ``8–15`` →
+                temperature, ``16–23`` → relay, ``24–27`` → digital input,
+                ``28–35`` → external relay, ``36–38`` → canister, ``39–41`` →
+                consumption. Anything outside this range falls into a sentinel
+                "uncategorized" bucket.
+            name: Sensor name as reported by the controller (e.g. ``"Redox"``).
+            unit: Unit string (``"mV"``, ``"°C"``, ``"%"``, ``"--"``, …).
+            offset: Calibration offset applied to ``value``.
+            gain: Calibration gain applied to ``value``.
+            value: Raw sensor value before calibration. Stored verbatim as
+                `raw_value`; the physical `value` is computed as
+                ``offset + gain * raw_value``.
+        """
         self._column = column
         self._name = name
         self._unit = unit
@@ -152,9 +244,16 @@ class DataObject:
             self._display_value = f"{self._value}"
 
     def __str__(self) -> str:
+        """Return a short ``"name (unit): value"`` representation."""
         return f"{self._name} ({self._unit}): {self._value}"
 
     def _relay_state(self) -> str:
+        """Render the current relay value as one of the four state strings.
+
+        Raises:
+            ValueError: If `self._value` is not one of the four valid relay
+                states (0, 1, 2, 3). Indicates a malformed CSV payload.
+        """
         match self._value:
             case 0:
                 return "Auto (off)"
@@ -169,59 +268,93 @@ class DataObject:
 
     @property
     def name(self) -> str:
-        """Name of the data object."""
+        """Sensor name as reported by the controller."""
         return self._name
 
     @property
     def unit(self) -> str:
-        """Unit of the data object."""
+        """Unit string (e.g. ``"mV"``, ``"°C"``, ``"%"``)."""
         return self._unit
 
     @property
     def offset(self) -> float:
-        """Offset applied when computing the actual value from raw."""
+        """Calibration offset applied when computing `value` from `raw_value`."""
         return self._offset
 
     @property
     def gain(self) -> float:
-        """Gain applied when computing the actual value from raw."""
+        """Calibration gain applied when computing `value` from `raw_value`."""
         return self._gain
 
     @property
     def raw_value(self) -> float:
-        """Raw value as received from the pool controller (before offset/gain are applied)."""
+        """Raw value as received from the controller, before calibration."""
         return self._raw_value
 
     @property
     def value(self) -> float:
-        """Actual value: offset + gain * raw_value."""
+        """Physical value: ``offset + gain * raw_value``."""
         return self._value
 
     @property
     def display_value(self) -> str:
-        """Value formatted for display (includes unit, precision, or state string)."""
+        """Pre-formatted human-readable string for display.
+
+        For sensors this is ``value`` rendered with its unit and two decimal
+        places. For relay columns it is one of "Auto (off)", "Auto (on)",
+        "Off", or "On". For column 0 (the system time field) it is "HH:MM".
+        """
         return self._display_value
 
     @property
     def column(self) -> int:
-        """Column index in the raw CSV data."""
+        """Zero-based column index this object came from in the raw CSV."""
         return self._column
 
     @property
     def category(self) -> str:
-        """Category string (e.g. CATEGORY_RELAY, CATEGORY_TEMPERATURE)."""
+        """One of the `CATEGORY_*` constants identifying the entity type."""
         return self._category
 
     @property
     def category_id(self) -> int:
-        """Zero-based index within the category."""
+        """Zero-based index of this object within its category.
+
+        For example, the third temperature sensor has ``category_id == 2``.
+        Use `Relay.relay_id` instead if you need the aggregated relay ID
+        across both the internal and external relay banks.
+        """
         return self._category_id
 
 
 class Relay(DataObject):
-    """A relay with convenience methods for state interrogation."""
+    """A `DataObject` with extra methods for interrogating a relay's state.
+
+    Relay state is encoded in two bits of the underlying `value`:
+
+    - bit 0 — output level (0 = off, 1 = on)
+    - bit 1 — control mode (0 = auto, 1 = manual)
+
+    The four valid combinations correspond to the four `display_value`
+    strings from `DataObject._relay_state`.
+
+    Construct one by passing the `DataObject` you got from
+    `GetStateData.relay_objects` (or `external_relay_objects`); the relay's
+    column, name, calibration, and raw value are copied across so the
+    physical value is computed exactly once. ``GetStateData.get_relay()`` is
+    a shorthand that does this for you.
+    """
 
     def __init__(self, data_object: DataObject):
+        """Wrap an existing relay `DataObject`.
+
+        Args:
+            data_object: A `DataObject` produced by parsing a `/GetState.csv`
+                response. It should be in the relay or external_relay
+                category, but no check is enforced — passing a non-relay
+                object yields a `Relay` whose interrogation methods will
+                still run but produce meaningless results.
+        """
         super().__init__(
             data_object.column,
             data_object.name,
@@ -232,39 +365,64 @@ class Relay(DataObject):
         )
 
     def __str__(self) -> str:
+        """Return ``"name: state"`` (e.g. ``"Pumpe: Auto (off)"``)."""
         return f"{self._name}: {self._display_value}"
 
     @property
     def relay_id(self) -> int:
-        """Aggregated relay ID: category_id for internal, category_id + 8 for external relays."""
+        """Aggregated relay ID across internal and external banks.
+
+        Internal relays return ``category_id`` directly (0–7); external
+        relays return ``category_id + EXTERNAL_RELAY_ID_OFFSET`` (8–15). This
+        ID matches the index used by `GetStateData.aggregated_relay_objects`
+        and `RelaySwitch.async_switch_*`.
+        """
         offset = EXTERNAL_RELAY_ID_OFFSET if self.category == CATEGORY_EXTERNAL_RELAY else 0
         return self.category_id + offset
 
     def is_on(self) -> bool:
-        """Returns True if the relay is currently on."""
+        """True if bit 0 of the relay value is set (output enabled)."""
         return int(self._value) & 1 == 1
 
     def is_off(self) -> bool:
-        """Returns True if the relay is currently off."""
+        """True if bit 0 of the relay value is clear (output disabled)."""
         return not self.is_on()
 
     def is_manual_mode(self) -> bool:
-        """Returns True if the relay is in manual mode."""
+        """True if bit 1 of the relay value is set (overridden by manual ENA)."""
         return int(self._value) & 2 == 2
 
     def is_auto_mode(self) -> bool:
-        """Returns True if the relay is in auto mode."""
+        """True if bit 1 of the relay value is clear (controller-driven)."""
         return not self.is_manual_mode()
 
     def get_bit_mask(self) -> int:
-        """Returns the bit mask for this relay in the ENA/state bit field."""
+        """Bit mask for this relay in the 16-bit ENA / state field.
+
+        Internal relays occupy bits 0–7, external relays 8–15. The mask
+        returned here is suitable for OR-ing into the
+        `determine_overall_relay_bit_state` output before sending an ENA
+        update.
+        """
         if self._category == CATEGORY_EXTERNAL_RELAY:
             return 1 << (self._category_id + EXTERNAL_RELAY_ID_OFFSET)
         return 1 << self._category_id
 
 
 class GetStateData:
-    """Structured representation of the data returned by the GetState.csv API."""
+    """Parsed representation of a single `/GetState.csv` response.
+
+    The CSV the controller returns has six lines: SYSINFO, names, units,
+    offsets, gains, and raw values. The constructor parses all six and
+    builds a list of `DataObject` instances, then groups them by category
+    for easy lookup.
+
+    Once constructed, an instance is read-only — it represents a snapshot.
+    Re-fetch and reconstruct the object whenever you need fresh data.
+
+    All public properties on this class are populated eagerly at construction
+    time, so accessing them is cheap.
+    """
 
     _time: str
     _version: str
@@ -287,6 +445,20 @@ class GetStateData:
     _consumption_objects: list[DataObject]
 
     def __init__(self, raw_data: str):
+        """Parse a `/GetState.csv` body into structured data.
+
+        Args:
+            raw_data: The raw multi-line CSV string returned by the
+                controller. Leading blank lines are tolerated.
+
+        Raises:
+            InvalidPayloadException: If the payload is empty or has fewer
+                than six non-blank lines (which means it cannot contain the
+                full SYSINFO + names + units + offsets + gains + values
+                rows).
+            ValueError: If any of the numeric rows contains a value that is
+                not parseable as a float.
+        """
         self._raw_data = raw_data
 
         line = 0
@@ -310,10 +482,11 @@ class GetStateData:
         self._time = self._data_objects[0].display_value
 
     def __str__(self) -> str:
+        """Return the original raw CSV as it was received."""
         return self._raw_data
 
     def _parse_system_info(self) -> None:
-        """Parse the first CSV line (SYSINFO) and populate system-level attributes."""
+        """Populate the system-level attributes from the SYSINFO line."""
         self._version = self._system_info[1]
         self._cpu_time = int(self._system_info[2])
         self._reset_root_cause = int(self._system_info[3])
@@ -326,72 +499,86 @@ class GetStateData:
 
     @property
     def time(self) -> str:
-        """Current time of the controller (HH:MM)."""
+        """Controller's current local time as ``"HH:MM"``."""
         return self._time
 
     @property
     def version(self) -> str:
-        """Firmware version of the controller."""
+        """Firmware version string reported by the controller."""
         return self._version
 
     @property
     def cpu_time(self) -> int:
-        """CPU uptime in seconds."""
+        """Controller CPU uptime in seconds since the last reset."""
         return self._cpu_time
 
     @property
     def reset_root_cause(self) -> int:
-        """Reason for the last controller reset, encoded as a bit field."""
+        """Numeric reset-root-cause code. Decode with `RESET_ROOT_CAUSE` or
+        `get_reset_root_cause_as_str`."""
         return self._reset_root_cause
 
     @property
     def ntp_fault_state(self) -> int:
-        """NTP fault state encoded as a bit field."""
+        """Numeric NTP fault state. Decode with `NTP_FAULT_STATE` or
+        `get_ntp_fault_state_as_str`. Bits 0/1/2 indicate severity (logfile,
+        warning, error); bit 16 indicates "NTP available"."""
         return self._ntp_fault_state
 
     @property
     def config_other_enable(self) -> int:
-        """Miscellaneous config flags encoded as a bit field."""
+        """Misc configuration flags. Use the `is_*_enabled` methods to query
+        individual bits (TCP/IP boost, SD card, DMX, …)."""
         return self._config_other_enable
 
     @property
     def dosage_control(self) -> int:
-        """Dosage control config flags encoded as a bit field."""
+        """Dosage configuration flags. Use the `is_*_dosage_enabled` and
+        `is_electrolysis_enabled` methods to query individual bits."""
         return self._dosage_control
 
     @property
     def ph_plus_dosage_relay_id(self) -> int:
-        """Aggregated relay ID of the pH+ dosage relay."""
+        """Aggregated relay ID configured to act as the pH+ dosing pump."""
         return self._ph_plus_dosage_relay_id
 
     @property
     def ph_minus_dosage_relay_id(self) -> int:
-        """Aggregated relay ID of the pH- dosage relay."""
+        """Aggregated relay ID configured to act as the pH- dosing pump."""
         return self._ph_minus_dosage_relay_id
 
     @property
     def chlorine_dosage_relay_id(self) -> int:
-        """Aggregated relay ID of the chlorine dosage relay."""
+        """Aggregated relay ID configured to act as the chlorine dosing pump."""
         return self._chlorine_dosage_relay_id
 
     def is_chlorine_dosage_enabled(self) -> bool:
-        """Returns True if chlorine dosage control is enabled."""
+        """True if chlorine dosage control is enabled in the controller config (bit 0)."""
         return self._dosage_control & 1 == 1
 
     def is_electrolysis_enabled(self) -> bool:
-        """Returns True if electrolysis control is enabled."""
+        """True if electrolysis (saltwater) chlorination is enabled (bit 4)."""
         return self._dosage_control & 16 == 16
 
     def is_ph_minus_dosage_enabled(self) -> bool:
-        """Returns True if pH- dosage control is enabled."""
+        """True if pH- dosage control is enabled in the controller config (bit 8)."""
         return self._dosage_control & 256 == 256
 
     def is_ph_plus_dosage_enabled(self) -> bool:
-        """Returns True if pH+ dosage control is enabled."""
+        """True if pH+ dosage control is enabled in the controller config (bit 12)."""
         return self._dosage_control & 4096 == 4096
 
     def is_dosage_enabled(self, data_entity: DataObject) -> bool:
-        """Returns True if dosage is enabled for the given canister or consumption object."""
+        """Convenience: is the dosage chemical for this canister/consumption entity enabled?
+
+        Args:
+            data_entity: A canister (column 36–38) or consumption (column 39–41)
+                `DataObject`. The chemical is inferred from the column index.
+
+        Returns:
+            True if the corresponding ``is_*_dosage_enabled`` flag is set.
+            False for any other column (or if the chemical is disabled).
+        """
         col = data_entity.column
         if col in (36, 39):
             return self.is_chlorine_dosage_enabled()
@@ -402,7 +589,17 @@ class GetStateData:
         return False
 
     def get_dosage_relay(self, data_entity: DataObject) -> int | None:
-        """Returns the aggregated relay ID for the dosage entity, or None if not applicable."""
+        """Aggregated relay ID that handles the dosing for this canister/consumption entity.
+
+        Args:
+            data_entity: A canister (column 36–38) or consumption (column 39–41)
+                `DataObject`.
+
+        Returns:
+            The aggregated relay ID (chlorine, pH-, or pH+) corresponding to
+            the entity's chemical, or ``None`` if the entity is not a
+            canister/consumption object.
+        """
         col = data_entity.column
         if col in (36, 39):
             return self._chlorine_dosage_relay_id
@@ -418,10 +615,34 @@ class GetStateData:
         data_object: DataObject | None = None,
         relay_id: int | None = None,
     ) -> bool:
-        """Returns True if the given relay refers to a dosage control relay.
+        """Check whether a relay is one of the configured dosage control relays.
 
-        Accepts one of: relay_object, data_object (must be a relay category), or relay_id.
-        Raises BadRelayException if data_object is provided but is not a relay category.
+        Pass exactly one of the three keyword arguments. The function returns
+        True if the supplied relay matches the chlorine, pH-, or pH+ dosage
+        relay configured on the controller, and False otherwise.
+
+        Args:
+            relay_object: A `Relay` instance.
+            data_object: A `DataObject` of category `relay` or
+                `external_relay`.
+            relay_id: An aggregated relay ID (0–15).
+
+        Returns:
+            True if the supplied argument identifies a dosage relay; False
+            otherwise (including when no argument is provided).
+
+        Raises:
+            BadRelayException: If ``data_object`` is supplied but is not a
+                relay-category `DataObject`.
+
+        Example:
+            ```python
+            # All three of these are equivalent ways to ask "is relay 5 a
+            # dosage relay?", assuming the chlorine pump is configured there.
+            state.is_dosage_relay(relay_id=5)
+            state.is_dosage_relay(relay_object=state.get_relay(5))
+            state.is_dosage_relay(data_object=state.aggregated_relay_objects[5])
+            ```
         """
         dosage_control_relays = [
             self._chlorine_dosage_relay_id,
@@ -444,16 +665,22 @@ class GetStateData:
         return False
 
     def get_reset_root_cause_as_str(self) -> str:
-        """Returns the reason for the last controller reset as a human-readable string."""
+        """Decode `reset_root_cause` to its `RESET_ROOT_CAUSE` label.
+
+        Falls back to the "n.a." label for any value not in the lookup table.
+        """
         if self._reset_root_cause not in RESET_ROOT_CAUSE:
             return RESET_ROOT_CAUSE[0]
         return RESET_ROOT_CAUSE[self._reset_root_cause]
 
     def get_ntp_fault_state_as_str(self) -> str:
-        """Returns the NTP fault state as a human-readable string.
+        """Decode `ntp_fault_state` to a human-readable label from `NTP_FAULT_STATE`.
 
-        NTP_FAULT_STATE values 1, 2, and 4 are bit flags (logfile / warning / error severity).
-        For composite values not in the lookup table, the highest-severity active bit is returned.
+        For exact matches in the lookup table (``0``, ``1``, ``2``, ``4``,
+        ``65536``) the corresponding label is returned. Composite states are
+        approximated by returning the highest-severity active bit (4 → 2 →
+        1), since the controller's CSV has no fixed combinations beyond the
+        listed ones. Falls back to "n.a." if no severity bit is set.
         """
         if self._ntp_fault_state in NTP_FAULT_STATE:
             return NTP_FAULT_STATE[self._ntp_fault_state]
@@ -463,43 +690,48 @@ class GetStateData:
         return NTP_FAULT_STATE[0]
 
     def is_tcpip_boost_enabled(self) -> bool:
-        """Returns True if TCP/IP boost is enabled."""
+        """True if TCP/IP boost is enabled in the controller config (bit 0)."""
         return self._config_other_enable & 1 == 1
 
     def is_sd_card_enabled(self) -> bool:
-        """Returns True if the SD card is enabled."""
+        """True if SD card logging is enabled in the controller config (bit 1)."""
         return self._config_other_enable & 2 == 2
 
     def is_dmx_enabled(self) -> bool:
-        """Returns True if DMX is enabled."""
+        """True if DMX output is enabled in the controller config (bit 2)."""
         return self._config_other_enable & 4 == 4
 
     def is_avatar_enabled(self) -> bool:
-        """Returns True if the avatar feature is enabled."""
+        """True if the avatar feature is enabled in the controller config (bit 3)."""
         return self._config_other_enable & 8 == 8
 
     def is_relay_extension_enabled(self) -> bool:
-        """Returns True if the relay extension module is enabled."""
+        """True if the external relay extension module is connected and active (bit 4).
+
+        Affects how `determine_overall_relay_bit_state` builds the ENA mask:
+        with the extension active, the mask covers all 16 bits instead of
+        just the internal 8.
+        """
         return self._config_other_enable & 16 == 16
 
     def is_high_bus_load_enabled(self) -> bool:
-        """Returns True if high bus load mode is enabled."""
+        """True if high bus load mode is enabled in the controller config (bit 5)."""
         return self._config_other_enable & 32 == 32
 
     def is_flow_sensor_enabled(self) -> bool:
-        """Returns True if the flow sensor is enabled."""
+        """True if the flow sensor is enabled in the controller config (bit 6)."""
         return self._config_other_enable & 64 == 64
 
     def is_repeated_mails_enabled(self) -> bool:
-        """Returns True if repeated email notifications are enabled."""
+        """True if repeated email notifications are enabled (bit 7)."""
         return self._config_other_enable & 128 == 128
 
     def is_dmx_extension_enabled(self) -> bool:
-        """Returns True if the DMX extension module is enabled."""
+        """True if the DMX extension module is enabled in the controller config (bit 8)."""
         return self._config_other_enable & 256 == 256
 
     def _parse(self) -> None:
-        """Parse the raw data and populate category-specific object lists."""
+        """Build per-column `DataObject` instances and group them by category."""
         self._data_objects = []
         for column, name in enumerate(self._data_names):
             self._data_objects.append(
@@ -538,124 +770,172 @@ class GetStateData:
 
     @property
     def analog_objects(self) -> list[DataObject]:
-        """All DataObjects in the analog category."""
+        """The five analog inputs (columns 1–5), in column order."""
         return self._analog_objects
 
     @property
     def electrode_objects(self) -> list[DataObject]:
-        """All DataObjects in the electrode category."""
+        """The two electrode readings — redox at index 0, pH at index 1."""
         return self._electrode_objects
 
     @property
     def temperature_objects(self) -> list[DataObject]:
-        """All DataObjects in the temperature category."""
+        """The eight temperature sensors (columns 8–15), in column order."""
         return self._temperature_objects
 
     @property
     def relay_objects(self) -> list[DataObject]:
-        """All DataObjects in the internal relay category."""
+        """The eight built-in relays (columns 16–23), in column order.
+
+        These are still untyped `DataObject` instances. Use `relays()` for
+        `Relay` instances with on/off and manual/auto helpers, or
+        `aggregated_relay_objects` to also include the external relays.
+        """
         return self._relay_objects
 
     def relays(self) -> list[Relay]:
-        """Returns internal relays as a list of Relay instances."""
+        """The eight built-in relays as `Relay` instances.
+
+        Equivalent to wrapping each entry in `relay_objects` with `Relay(...)`.
+        """
         return [Relay(obj) for obj in self._relay_objects]
 
     @property
     def digital_input_objects(self) -> list[DataObject]:
-        """All DataObjects in the digital input category."""
+        """The four digital inputs (columns 24–27), in column order."""
         return self._digital_input_objects
 
     @property
     def external_relay_objects(self) -> list[DataObject]:
-        """All DataObjects in the external relay category."""
+        """The eight external relays (columns 28–35), in column order.
+
+        Will be present in the parsed data even when the relay extension is
+        not enabled in the controller config — check
+        `is_relay_extension_enabled` before treating them as live.
+        """
         return self._external_relay_objects
 
     def external_relays(self) -> list[Relay]:
-        """Returns external relays as a list of Relay instances."""
+        """The eight external relays as `Relay` instances."""
         return [Relay(obj) for obj in self._external_relay_objects]
 
     @property
     def canister_objects(self) -> list[DataObject]:
-        """All DataObjects in the canister category."""
+        """The three canister fill-level readings (columns 36–38).
+
+        Order: chlorine, pH-, pH+. Convenience properties `chlorine_canister`,
+        `ph_minus_canister`, and `ph_plus_canister` return individual entries.
+        """
         return self._canister_objects
 
     @property
     def consumption_objects(self) -> list[DataObject]:
-        """All DataObjects in the consumption category."""
+        """The three dosage consumption counters (columns 39–41).
+
+        Order: chlorine, pH-, pH+. Convenience properties
+        `chlorine_consumption`, `ph_minus_consumption`, and
+        `ph_plus_consumption` return individual entries.
+        """
         return self._consumption_objects
 
     @property
     def redox_electrode(self) -> DataObject:
-        """DataObject for the redox electrode."""
+        """The redox electrode reading (column 6)."""
         return self._electrode_objects[0]
 
     @property
     def ph_electrode(self) -> DataObject:
-        """DataObject for the pH electrode."""
+        """The pH electrode reading (column 7)."""
         return self._electrode_objects[1]
 
     @property
     def chlorine_canister(self) -> DataObject:
-        """DataObject for the chlorine canister level."""
+        """Chlorine canister fill level (column 36)."""
         return self._canister_objects[0]
 
     @property
     def ph_minus_canister(self) -> DataObject:
-        """DataObject for the pH- canister level."""
+        """pH- canister fill level (column 37)."""
         return self._canister_objects[1]
 
     @property
     def ph_plus_canister(self) -> DataObject:
-        """DataObject for the pH+ canister level."""
+        """pH+ canister fill level (column 38)."""
         return self._canister_objects[2]
 
     @property
     def chlorine_consumption(self) -> DataObject:
-        """DataObject for chlorine consumption."""
+        """Cumulative chlorine consumption counter (column 39)."""
         return self._consumption_objects[0]
 
     @property
     def ph_minus_consumption(self) -> DataObject:
-        """DataObject for pH- consumption."""
+        """Cumulative pH- consumption counter (column 40)."""
         return self._consumption_objects[1]
 
     @property
     def ph_plus_consumption(self) -> DataObject:
-        """DataObject for pH+ consumption."""
+        """Cumulative pH+ consumption counter (column 41)."""
         return self._consumption_objects[2]
 
     @property
     def aggregated_relay_objects(self) -> list[DataObject]:
-        """All relay DataObjects: internal relays first, then external relays."""
+        """All 16 relay `DataObject`s — internal first, then external.
+
+        Index in this list is the aggregated relay ID used by `Relay.relay_id`,
+        `get_relay`, and the `RelaySwitch` API.
+        """
         return self._relay_objects + self._external_relay_objects
 
     @property
     def chlorine_dosage_relay(self) -> DataObject:
-        """DataObject of the chlorine dosage relay."""
+        """The relay configured as the chlorine dosing pump."""
         return self.aggregated_relay_objects[self._chlorine_dosage_relay_id]
 
     @property
     def ph_minus_dosage_relay(self) -> DataObject:
-        """DataObject of the pH- dosage relay."""
+        """The relay configured as the pH- dosing pump."""
         return self.aggregated_relay_objects[self._ph_minus_dosage_relay_id]
 
     @property
     def ph_plus_dosage_relay(self) -> DataObject:
-        """DataObject of the pH+ dosage relay."""
+        """The relay configured as the pH+ dosing pump."""
         return self.aggregated_relay_objects[self._ph_plus_dosage_relay_id]
 
     def get_relay(self, relay_id: int) -> Relay:
-        """Returns the Relay instance for the given aggregated relay ID."""
+        """Return the `Relay` for the given aggregated relay ID (0–15).
+
+        Args:
+            relay_id: 0–7 for internal relays, 8–15 for external relays.
+
+        Returns:
+            A new `Relay` wrapping the underlying `DataObject`.
+
+        Raises:
+            IndexError: If ``relay_id`` is outside the 0–15 range.
+        """
         return Relay(self.aggregated_relay_objects[relay_id])
 
     def get_relays(self) -> list[Relay]:
-        """Returns all relays (internal + external) as Relay instances."""
+        """All 16 relays as `Relay` instances, in aggregated-ID order."""
         return [Relay(obj) for obj in self.aggregated_relay_objects]
 
     def determine_overall_relay_bit_state(self) -> list[int]:
-        """Determine the overall relay bit state from the current state.
+        """Build the two-element ENA bit field that represents the current relay state.
 
-        Returns [enable_mask, on_mask] — a two-element list suitable for the ENA= payload.
+        The controller's `/usrcfg.cgi` payload uses an ``ENA=enable_mask,on_mask``
+        pair to set relay state. ``enable_mask`` selects which relays are in
+        manual mode (bit set = manual, bit clear = auto), and ``on_mask``
+        selects the manual-on relays among them.
+
+        Returns:
+            A two-element list ``[enable_mask, on_mask]``. Both masks cover
+            bits 0–7 (internal relays) by default, or bits 0–15 if the
+            external relay extension is enabled (`is_relay_extension_enabled`).
+
+            The masks reflect the *current* state, so callers can flip a
+            single relay's bit and POST the result to switch only that
+            relay without touching the others.
         """
         relay_list: list[Relay] = [Relay(obj) for obj in self._relay_objects]
         bit_state = [255, 0]
@@ -672,39 +952,65 @@ class GetStateData:
 
 
 class DmxChannelData:
-    """DMX channel state representation."""
+    """A single DMX channel's index, name, and current value."""
 
     value: int
+    """Current channel intensity (0–255)."""
+
     _index: int
     _name: str
 
     def __init__(self, index: int, value: int):
-        """Initialize a DMX channel with its index and current value."""
+        """Build a channel entry.
+
+        Args:
+            index: Zero-based channel index (0 = channel 1, 15 = channel 16).
+            value: Initial channel intensity. The constructor does not clamp
+                values — out-of-range inputs are stored verbatim. Use
+                `GetDmxData.set` if you want the [0, 255] clamp.
+        """
         self.value = value
         self._index = index
         self._name = f"CH{index + 1:0>2}"
 
     @property
     def index(self) -> int:
-        """Zero-based channel index."""
+        """Zero-based channel index (0 = channel 1)."""
         return self._index
 
     @property
     def name(self) -> str:
-        """Channel name (e.g. CH01, CH16)."""
+        """Human-friendly channel name like ``"CH01"`` or ``"CH16"``."""
         return self._name
 
     def __str__(self) -> str:
+        """Render the channel as a bare integer string for payload building."""
         return str(self.value)
 
 
 class GetDmxData:
-    """Data model for reading and updating DMX channel states from /GetDmx.csv."""
+    """Mutable representation of all 16 DMX channels.
+
+    Construct from a `/GetDmx.csv` body, then read or modify channels via
+    indexing, iteration, `get_value`, or `set`. Pass the (possibly mutated)
+    instance to `proconip.api.async_set_dmx` to write the new state back.
+    """
 
     _channels: list[DmxChannelData]
 
     def __init__(self, raw_data: str):
-        """Initialize from the raw /GetDmx.csv response string."""
+        """Parse a `/GetDmx.csv` body into 16 channels.
+
+        Args:
+            raw_data: The raw CSV string returned by the controller. Leading
+                blank lines are tolerated; only the first non-blank line is
+                parsed.
+
+        Raises:
+            InvalidPayloadException: If the payload is empty or
+                whitespace-only.
+            ValueError: If a channel value cannot be parsed as an integer.
+        """
         self._raw_data = raw_data
         self._channels = []
 
@@ -720,24 +1026,39 @@ class GetDmxData:
             self._channels.append(DmxChannelData(idx, int(value)))
 
     def __getitem__(self, index: int) -> DmxChannelData:
-        """Direct channel access by index."""
+        """Return the `DmxChannelData` at the given zero-based index."""
         return self._channels[index]
 
     def __iter__(self) -> Iterator[DmxChannelData]:
-        """Iterate over all channels in order."""
+        """Iterate over all channels in index order."""
         return iter(self._channels)
 
     def __str__(self) -> str:
+        """Return the raw CSV body the instance was parsed from."""
         return self._raw_data
 
     def get_value(self, index: int) -> int:
-        """Get the current value of the channel at index (0 = channel 1, 15 = channel 16)."""
+        """Return the current value of the channel at ``index``.
+
+        Equivalent to ``self[index].value``. Provided for symmetry with
+        `set`.
+        """
         return self._channels[index].value
 
     def set(self, index: int, value: int) -> None:
-        """Set the value for the channel at index (0 = channel 1, 15 = channel 16).
+        """Update the value of one channel.
 
-        Values outside [0, 255] are clamped. Raises IndexError for out-of-range index.
+        Values outside the [0, 255] range are silently clamped — the
+        controller's DMX hardware only accepts 8-bit values, so callers
+        rarely need anything else.
+
+        Args:
+            index: Zero-based channel index (0 for channel 1, 15 for
+                channel 16).
+            value: New intensity. Clamped to [0, 255].
+
+        Raises:
+            IndexError: If ``index`` is not in 0–15.
         """
         if index > 15 or index < 0:
             raise IndexError("Index must be between 0 (channel 1) and 15 (channel 16)")
@@ -745,7 +1066,19 @@ class GetDmxData:
 
     @property
     def post_data(self) -> dict[str, str]:
-        """HTTP POST payload dict for updating DMX channels via the controller API."""
+        """Form payload that updates the DMX channel state via `/usrcfg.cgi`.
+
+        The dict has five keys, all required by the controller:
+
+        - ``TYPE``: always ``"0"``.
+        - ``LEN``: always ``"16"`` (channels per write).
+        - ``CH1_8``: comma-separated values for channels 1–8.
+        - ``CH9_16``: comma-separated values for channels 9–16.
+        - ``DMX512``: always ``"1"``.
+
+        URL-encode and join with ``&`` to produce the actual POST body — see
+        `proconip.api.async_set_dmx` for the canonical encoding.
+        """
         return {
             "TYPE": "0",
             "LEN": "16",
@@ -756,8 +1089,18 @@ class GetDmxData:
 
 
 class BadRelayException(Exception):
-    """Raised when an invalid or inappropriate relay is given as a parameter."""
+    """Raised when a relay argument doesn't make sense in context.
+
+    The two main cases are: switching a dosage relay on directly (rejected
+    by `proconip.api.async_switch_on`), and passing a non-relay `DataObject`
+    to `GetStateData.is_dosage_relay`.
+    """
 
 
 class InvalidPayloadException(Exception):
-    """Raised when the API response cannot be parsed as expected."""
+    """Raised when a CSV response from the controller cannot be parsed.
+
+    Typically this means the response was empty, truncated, or did not
+    have the expected number of CSV lines. Catching this lets callers
+    distinguish protocol-level breakage from network errors.
+    """

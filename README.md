@@ -3,6 +3,7 @@
 [![Lint](https://github.com/ylabonte/proconip-pypi/actions/workflows/lint.yml/badge.svg)](https://github.com/ylabonte/proconip-pypi/actions/workflows/lint.yml)
 [![Test](https://github.com/ylabonte/proconip-pypi/actions/workflows/test.yml/badge.svg)](https://github.com/ylabonte/proconip-pypi/actions/workflows/test.yml)
 [![CodeQL](https://github.com/ylabonte/proconip-pypi/actions/workflows/codeql.yml/badge.svg)](https://github.com/ylabonte/proconip-pypi/actions/workflows/codeql.yml)
+[![Documentation](https://github.com/ylabonte/proconip-pypi/actions/workflows/docs.yml/badge.svg)](https://ylabonte.github.io/proconip-pypi/)
 [![PyPI Package release](https://github.com/ylabonte/proconip-pypi/actions/workflows/python-publish.yml/badge.svg)](https://github.com/ylabonte/proconip-pypi/actions/workflows/python-publish.yml)
 
 [![PyPI](https://img.shields.io/pypi/v/proconip?label=Current%20Release)](https://pypi.org/project/proconip/)
@@ -34,8 +35,10 @@ As the TypeScript library was a byproduct of my ioBroker adapter for the pool
 controller unit, this library is primarily intended for the implementation of a
 Home Assistant integration.
 
-The library is fully typed (PEP 561). An IDE with auto-completion should make
-it straightforward to use without additional documentation.
+The library is fully typed (PEP 561). An IDE with auto-completion will give
+you most of what you need; for the full reference see the documentation site:
+
+- **API reference**: <https://ylabonte.github.io/proconip-pypi/>
 
 Feel free to ask questions via [GitHub Issues](https://github.com/ylabonte/proconip-pypi/issues)
 so others can benefit from the answers too. Thanks!
