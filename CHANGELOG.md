@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `GetDmxData.__iter__` — `for channel in dmx_data:` now works via an explicit iterator.
 - `InvalidPayloadException` class — raised by `GetStateData` and `GetDmxData` when the controller's payload is empty or truncated.
 - `configurable timeout` parameter (`timeout: float = 10.0`) on all public async functions; the timeout now wraps both the request and response body read.
+- OO wrappers (`GetState`, `RelaySwitch`, `DosageControl`, `DmxControl`) now accept a `timeout` argument in `__init__` and on every async method (defaults to `10.0` seconds; the method-level argument, when supplied, overrides the value bound in the constructor).
 - `CHANGELOG.md` (this file) — release notes extracted from README.
 - **Documentation site** at <https://ylabonte.github.io/proconip-pypi/> built with MkDocs Material + mkdocstrings; rebuilds on every `main` push and release. Source docstrings audited and expanded throughout the public surface.
 - `CLAUDE.md` — project memory for AI agents (and humans) capturing tech stack, conventions, and pitfalls.

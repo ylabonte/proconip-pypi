@@ -617,31 +617,30 @@ class GetStateData:
     ) -> bool:
         """Check whether a relay is one of the configured dosage control relays.
 
-        Provide any one of the three keyword arguments to identify the relay.
-        If more than one argument is supplied, the function applies the
-        following precedence order: ``relay_object`` > ``data_object`` >
-        ``relay_id``. The function returns True if the selected relay matches
-        the chlorine, pH-, or pH+ dosage relay configured on the controller,
-        and False otherwise.
+        Provide one of `relay_object`, `data_object`, or `relay_id`. If more
+        than one is supplied, the first non-None argument in that precedence
+        order wins and the others are ignored. If none are provided the
+        method returns False.
 
         Args:
-            relay_object: A `Relay` instance.
+            relay_object: A `Relay` instance. Highest-precedence argument.
             data_object: A `DataObject` of category `relay` or
-                `external_relay`.
-            relay_id: An aggregated relay ID (0–15).
+                `external_relay`. Considered only when `relay_object` is None.
+            relay_id: An aggregated relay ID (0–15). Considered only when
+                both `relay_object` and `data_object` are None.
 
         Returns:
-            True if the supplied argument identifies a dosage relay; False
+            True if the resolved argument identifies a dosage relay; False
             otherwise (including when no argument is provided).
 
         Raises:
-            BadRelayException: If ``data_object`` is supplied but is not a
-                relay-category `DataObject`.
+            BadRelayException: If ``data_object`` is the resolved argument
+                but is not a relay-category `DataObject`.
 
         Example:
             ```python
-            # All three of these are equivalent ways to ask "is relay 5 a
-            # dosage relay?", assuming the chlorine pump is configured there.
+            # Three equivalent ways to ask "is relay 5 a dosage relay?",
+            # assuming the chlorine pump is configured there.
             state.is_dosage_relay(relay_id=5)
             state.is_dosage_relay(relay_object=state.get_relay(5))
             state.is_dosage_relay(data_object=state.aggregated_relay_objects[5])
