@@ -1,4 +1,5 @@
 version: 2
+
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -6,11 +7,33 @@ updates:
       interval: "weekly"
     assignees:
       - ylabonte
+    groups:
+      actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     assignees:
-      - "ylabonte"
-    versioning-strategy: "increase"
+      - ylabonte
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+    groups:
+      aiohttp-stack:
+        patterns:
+          - "aiohttp"
+          - "yarl"
+          - "multidict"
+          - "propcache"
+      dev-tools:
+        patterns:
+          - "ruff"
+          - "mypy"
+          - "pre-commit"
+          - "pytest*"
+          - "pytest-*"
+          - "aioresponses"

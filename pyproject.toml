@@ -1,22 +1,104 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "proconip"
-version = "1.4.7"
-authors = [
-  { name="Yannic Labonte", email="yannic.labonte@gmail.com" },
-]
-description = "Library for basic interaction with the Procon.IP pool controller unit."
+dynamic = ["version"]
+description = "Async Python library for interacting with the ProCon.IP pool controller."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.13"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [
+  { name = "Yannic Labonte", email = "yannic.labonte@gmail.com" },
+]
+keywords = ["procon", "proconip", "pool", "home-automation", "home-assistant", "async"]
 classifiers = [
-    "Programming Language :: Python :: 3",
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Topic :: Home Automation",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Framework :: AsyncIO",
+    "Typing :: Typed",
     "License :: OSI Approved :: GNU Affero General Public License v3",
     "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
 ]
+dependencies = [
+    "aiohttp>=3.10,<4",
+    "yarl>=1.9,<2",
+]
+
+[project.optional-dependencies]
+dev = ["ruff", "mypy", "pre-commit"]
+test = ["pytest", "pytest-asyncio", "pytest-cov", "aioresponses"]
 
 [project.urls]
 "Homepage" = "https://github.com/ylabonte/proconip-pypi"
+"Source" = "https://github.com/ylabonte/proconip-pypi"
+"Changelog" = "https://github.com/ylabonte/proconip-pypi/blob/main/CHANGELOG.md"
 "Bug Tracker" = "https://github.com/ylabonte/proconip-pypi/issues"
+
+[tool.hatch.version]
+source = "vcs"
+fallback-version = "2.0.0.dev0"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/proconip/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/proconip"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/",
+    "tests/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "RET", "PTH"]
+ignore = [
+    "B905",   # zip() without strict= — not critical here
+    "RET504", # Unnecessary assignment before return — readability tradeoff
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["E501"]
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+warn_redundant_casts = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+strict_equality = true
+files = ["src"]
+exclude = ["src/proconip/_version.py"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "--cov=proconip --cov-report=term-missing --cov-fail-under=80"
+
+[tool.coverage.run]
+source = ["proconip"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "except ImportError",
+]
