@@ -28,10 +28,10 @@ API_PATH_USRCFG = "/usrcfg.cgi"
 API_PATH_COMMAND = "/Command.htm"
 API_PATH_GET_DMX = "/GetDmx.csv"
 
+# Offset added to a relay's category_id to form its aggregated relay ID when it
+# lives on the external relay extension. Internal relays occupy aggregated IDs
+# 0–7, external relays 8–15.
 EXTERNAL_RELAY_ID_OFFSET = 8
-"""Offset added to a relay's `category_id` to form its aggregated relay ID
-when it lives on the optional external relay extension. Internal relays
-occupy aggregated IDs 0–7, external relays 8–15."""
 
 CATEGORY_TIME = "time"
 CATEGORY_ANALOG = "analog"
@@ -43,6 +43,8 @@ CATEGORY_EXTERNAL_RELAY = "external_relay"
 CATEGORY_CANISTER = "canister"
 CATEGORY_CONSUMPTION = "consumption"
 
+# Lookup table mapping the controller's reset-root-cause code to a human
+# label. The codes are exact values, not bit flags.
 RESET_ROOT_CAUSE = {
     0: "n.a.",
     1: "External reset",
@@ -51,9 +53,10 @@ RESET_ROOT_CAUSE = {
     8: "Watchdog reset",
     16: "SW reset",
 }
-"""Lookup table mapping the controller's reset-root-cause code to a human
-label. The codes are exact values, not bit flags."""
 
+# Lookup table mapping NTP fault state codes to human labels. Values 1, 2 and
+# 4 are severity bit flags that may also appear in combination; the bit 65536
+# indicates "NTP synchronisation reached" and is set independently.
 NTP_FAULT_STATE = {
     0: "n.a.",
     1: "Logfile (GUI warning, green)",
@@ -61,9 +64,6 @@ NTP_FAULT_STATE = {
     4: "Error (GUI warning, red)",
     65536: "NTP available",
 }
-"""Lookup table mapping NTP fault state codes to human labels. Values 1, 2
-and 4 are severity bit flags that may also appear in combination; the bit
-65536 indicates "NTP synchronisation reached" and is set independently."""
 
 
 class DosageTarget(IntEnum):
@@ -968,11 +968,15 @@ class GetStateData:
 
 
 class DmxChannelData:
-    """A single DMX channel's index, name, and current value."""
+    """A single DMX channel's index, name, and current value.
+
+    Attributes:
+        value: Current channel intensity, expected in the range [0, 255].
+            The constructor stores the value verbatim; clamping happens in
+            `GetDmxData.set`.
+    """
 
     value: int
-    """Current channel intensity (0–255)."""
-
     _index: int
     _name: str
 

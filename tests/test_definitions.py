@@ -23,6 +23,17 @@ from proconip.definitions import (
     Relay,
 )
 
+
+def _minimal_state_csv(*, ntp_fault_state: int = 0) -> str:
+    """Build a single-column SYSINFO + 5 data-row CSV for targeted parser tests.
+
+    The full fixture in `tests/fixtures/get_state.csv` is the canonical happy-path
+    payload; this helper produces a minimal, parameterizable variant for tests
+    that exercise specific SYSINFO fields like the NTP fault state.
+    """
+    return f"SYSINFO,1.7.3,0,0,{ntp_fault_state},0,0,0,0,0\ncol\nunit\n0\n1\n0\n"
+
+
 # ---------------------------------------------------------------------------
 # ConfigObject
 # ---------------------------------------------------------------------------
@@ -107,9 +118,7 @@ def test_get_state_ntp_fault_state(get_state_data: GetStateData) -> None:
 )
 def test_get_ntp_fault_state_as_str_parametrized(ntp_value: int, expected: str) -> None:
     """Test NTP fault state string for various bit combinations."""
-    # Build a minimal CSV with the desired ntp_fault_state
-    base = f"SYSINFO,1.7.3,0,0,{ntp_value},0,0,0,0,0\ncol\nunit\n0\n1\n0\n"
-    data = GetStateData(base)
+    data = GetStateData(_minimal_state_csv(ntp_fault_state=ntp_value))
     assert data.get_ntp_fault_state_as_str() == expected
 
 
