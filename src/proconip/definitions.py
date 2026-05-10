@@ -617,9 +617,12 @@ class GetStateData:
     ) -> bool:
         """Check whether a relay is one of the configured dosage control relays.
 
-        Pass exactly one of the three keyword arguments. The function returns
-        True if the supplied relay matches the chlorine, pH-, or pH+ dosage
-        relay configured on the controller, and False otherwise.
+        Provide any one of the three keyword arguments to identify the relay.
+        If more than one argument is supplied, the function applies the
+        following precedence order: ``relay_object`` > ``data_object`` >
+        ``relay_id``. The function returns True if the selected relay matches
+        the chlorine, pH-, or pH+ dosage relay configured on the controller,
+        and False otherwise.
 
         Args:
             relay_object: A `Relay` instance.
