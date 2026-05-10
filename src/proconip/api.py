@@ -118,12 +118,17 @@ async def async_post_usrcfg_cgi(
     headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
     try:
         async with asyncio.timeout(timeout):
-            response = await client_session.post(url=url, headers=headers, data=payload, auth=auth)
+            async with client_session.post(
+                url=url,
+                headers=headers,
+                data=payload,
+                auth=auth,
+            ) as response:
+                return await _handle_response(response)
     except TimeoutError as exc:
         raise TimeoutException("API request timed out") from exc
     except (ClientError, socket.gaierror) as exc:
         raise ProconipApiException(f"API request failed ({exc})") from exc
-    return await _handle_response(response)
 
 
 async def async_switch_on(
