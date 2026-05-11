@@ -110,7 +110,16 @@ async def _command(request: web.Request) -> web.Response:
     dosage = request.query.get("MAN_DOSAGE")
     if dosage is None:
         return web.Response(status=400, text="Missing MAN_DOSAGE query parameter")
-    _LOG.info("manual dosage: %s", _sanitize_for_log(dosage))
+    try:
+        target_str, duration_str = dosage.split(",", 1)
+        target = int(target_str)
+        duration = int(duration_str)
+    except ValueError as exc:
+        _LOG.warning("invalid MAN_DOSAGE: %s", _sanitize_for_log(str(exc)))
+        return web.Response(status=400, text="Invalid MAN_DOSAGE payload")
+    # Logged as %d after int() parsing — no attacker-controlled string reaches
+    # the log line (CodeQL py/log-injection sanitization boundary).
+    _LOG.info("manual dosage: target=%d duration=%d", target, duration)
     return web.Response(text="OK")
 
 
