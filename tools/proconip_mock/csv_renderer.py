@@ -97,8 +97,14 @@ def render_get_state(state: MockState, *, wall_clock: dt_time | None = None) -> 
     for column in _EXTERNAL_RELAY_COLUMNS:
         new_raw[column] = float(state.csv_relay_value(column - 28 + 8))
 
+    # SYSINFO[5] is the `config_other_enable` bitfield consumed by
+    # `GetStateData.is_*_enabled()`. The template is cached, so emit a
+    # fresh copy with the runtime override applied.
+    sysinfo_row = list(sysinfo)
+    sysinfo_row[5] = str(state.config_other_enable)
+
     rows = [
-        ",".join(sysinfo),
+        ",".join(sysinfo_row),
         ",".join(names),
         ",".join(units),
         ",".join(_format_float(v) for v in offsets),

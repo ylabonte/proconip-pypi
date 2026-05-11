@@ -20,11 +20,31 @@ NUM_DMX_CHANNELS = 16
 
 @dataclass
 class MockState:
-    """Snapshot of every mutable controller state the mock cares about."""
+    """Snapshot of every mutable controller state the mock cares about.
+
+    The ``config_other_enable`` field is rendered into row 1 (SYSINFO) of
+    ``/GetState.csv`` and gates the client-side feature flags exposed by
+    `proconip.definitions.GetStateData`. Bit layout (from `definitions.py`):
+
+    - bit 0 (1)   — TCP/IP boost
+    - bit 1 (2)   — SD card logging
+    - bit 2 (4)   — DMX
+    - bit 3 (8)   — Avatar
+    - bit 4 (16)  — Relay extension (internal + external relays)
+    - bit 5 (32)  — High bus load
+    - bit 6 (64)  — Flow sensor
+    - bit 7 (128) — Repeated mails
+    - bit 8 (256) — DMX extension
+
+    Default is 0 so the mock's emitted CSV stays byte-compatible with
+    ``tests/fixtures/get_state.csv``; client code that depends on a flag
+    constructs ``MockState(config_other_enable=…)`` to turn it on.
+    """
 
     relay_enabled: list[bool] = field(default_factory=lambda: [False] * NUM_RELAY_BITS)
     relay_on: list[bool] = field(default_factory=lambda: [False] * NUM_RELAY_BITS)
     dmx: list[int] = field(default_factory=lambda: [0] * NUM_DMX_CHANNELS)
+    config_other_enable: int = 0
     monotonic: Callable[[], float] = field(default=time.monotonic)
     _t0: float = field(init=False)
 
