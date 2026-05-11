@@ -9,7 +9,7 @@
       "options": {
         "cwd": "${workspaceFolder}",
         "env": {
-          "PROCONIP_MOCK_HOST": "0.0.0.0",
+          "PROCONIP_MOCK_HOST": "127.0.0.1",
           "PROCONIP_MOCK_PORT": "8080"
         }
       },
@@ -19,7 +19,7 @@
         "panel": "dedicated",
         "reveal": "always"
       },
-      "detail": "Run the local mock controller on http://localhost:8080 (admin/admin). Stop via the task panel."
+      "detail": "Run the local mock controller on http://127.0.0.1:8080 (admin/admin). Loopback-only by default; the devcontainer config overrides this to 0.0.0.0 for port forwarding. Stop via the task panel."
     },
     {
       "label": "Docs: Serve",
