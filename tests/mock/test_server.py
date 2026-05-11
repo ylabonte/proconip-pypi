@@ -87,6 +87,24 @@ class TestUsrcfgRelay:
         assert state.relay_enabled[0] is True
         assert state.relay_on[0] is True
 
+    async def test_percent_encoded_ena_payload_is_decoded(
+        self, client: TestClient, state: MockState
+    ) -> None:
+        # A standards-compliant client may URL-encode special chars like the
+        # comma in the ENA value (%2C). The mock must decode it the same way
+        # a real controller's form parser would.
+        response = await client.post(
+            "/usrcfg.cgi",
+            data="ENA=1%2C1&MANUAL=1",
+            headers={
+                "Authorization": _basic("admin", "secret"),
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+        )
+        assert response.status == 200
+        assert state.relay_enabled[0] is True
+        assert state.relay_on[0] is True
+
 
 class TestUsrcfgDmx:
     async def test_post_dmx_updates_state(self, client: TestClient, state: MockState) -> None:
