@@ -114,6 +114,19 @@ class TestCommandHtm:
         text = await response.text()
         assert text.strip() == "OK"
 
+    async def test_malformed_dosage_rejected_without_leaking_input(
+        self, client: TestClient
+    ) -> None:
+        response = await client.get(
+            "/Command.htm",
+            params={"MAN_DOSAGE": "haha,nope"},
+            headers={"Authorization": _basic("admin", "secret")},
+        )
+        body = await response.text()
+        assert response.status == 400
+        assert "haha" not in body
+        assert "invalid literal" not in body.lower()
+
 
 class TestErrorResponsesDoNotLeakExceptionText:
     """CodeQL: error responses must not echo internal exception details
