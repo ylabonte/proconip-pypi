@@ -35,8 +35,16 @@ def main() -> None:
 
     state = MockState()
     app = create_app(state, username=username, password=password)
+    # When binding to an unspecified address (`0.0.0.0` / `::`), the literal
+    # URL is not connectable from a client; substitute `localhost` so the log
+    # line shows something a developer can paste into a browser or curl.
+    display_host = "localhost" if host in ("0.0.0.0", "::") else host
     logging.getLogger("proconip_mock").info(
-        "ProCon.IP mock listening on http://%s:%d (user=%s)", host, port, username
+        "ProCon.IP mock listening on http://%s:%d (bind=%s, user=%s)",
+        display_host,
+        port,
+        host,
+        username,
     )
     web.run_app(app, host=host, port=port, print=None)
 
