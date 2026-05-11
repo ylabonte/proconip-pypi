@@ -75,27 +75,31 @@ async def _get_dmx(request: web.Request) -> web.Response:
 
 async def _usrcfg(request: web.Request) -> web.Response:
     state = request.app[STATE_KEY]
-    body = await request.text()
-    fields = _parse_form(body)
+    # aiohttp's request.post() handles `application/x-www-form-urlencoded`
+    # to spec (percent-decoding, `+` → space, repeated keys), matching what
+    # a real controller's form parser would do.
+    fields = await request.post()
 
     if "ENA" in fields:
+        ena_value = str(fields["ENA"])
+        manual_value = str(fields.get("MANUAL", ""))
         try:
-            enable_str, on_str = fields["ENA"].split(",", 1)
+            enable_str, on_str = ena_value.split(",", 1)
             state.apply_ena(enable_mask=int(enable_str), on_mask=int(on_str))
         except (ValueError, KeyError) as exc:
             _LOG.warning("invalid ENA payload: %s", _sanitize_for_log(str(exc)))
             return web.Response(status=400, text="Invalid ENA payload")
         _LOG.info(
             "relay update: ENA=%s MANUAL=%s",
-            _sanitize_for_log(fields["ENA"]),
-            _sanitize_for_log(fields.get("MANUAL", "")),
+            _sanitize_for_log(ena_value),
+            _sanitize_for_log(manual_value),
         )
         return web.Response(text="OK")
 
     if "CH1_8" in fields and "CH9_16" in fields:
         try:
-            ch_low = [int(v) for v in fields["CH1_8"].split(",")]
-            ch_high = [int(v) for v in fields["CH9_16"].split(",")]
+            ch_low = [int(v) for v in str(fields["CH1_8"]).split(",")]
+            ch_high = [int(v) for v in str(fields["CH9_16"]).split(",")]
             state.apply_dmx(channels_1_8=ch_low, channels_9_16=ch_high)
         except ValueError as exc:
             _LOG.warning("invalid DMX payload: %s", _sanitize_for_log(str(exc)))
@@ -121,16 +125,6 @@ async def _command(request: web.Request) -> web.Response:
     # the log line (CodeQL py/log-injection sanitization boundary).
     _LOG.info("manual dosage: target=%d duration=%d", target, duration)
     return web.Response(text="OK")
-
-
-def _parse_form(body: str) -> dict[str, str]:
-    fields: dict[str, str] = {}
-    for chunk in body.split("&"):
-        if not chunk:
-            continue
-        key, _, value = chunk.partition("=")
-        fields[key] = value
-    return fields
 
 
 def create_app(
