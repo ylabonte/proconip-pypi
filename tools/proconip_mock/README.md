@@ -14,14 +14,14 @@ pip install -e ".[dev,test,docs]"
 python -m tools.proconip_mock
 ```
 
-The server logs `listening on http://0.0.0.0:8080` and stays up. Stop with
-Ctrl-C.
+The server logs `listening on http://localhost:8080 (bind=127.0.0.1, …)`
+and stays up. Stop with Ctrl-C.
 
 ## Environment variables
 
 | Var | Default | Purpose |
 |---|---|---|
-| `PROCONIP_MOCK_HOST` | `0.0.0.0` | Bind host |
+| `PROCONIP_MOCK_HOST` | `127.0.0.1` | Bind host. Loopback-only by default; the devcontainer overrides this to `0.0.0.0` so the forwarded port is reachable from outside the container. |
 | `PROCONIP_MOCK_PORT` | `8080` | Bind port |
 | `PROCONIP_MOCK_USER` | `admin` | HTTP basic-auth user |
 | `PROCONIP_MOCK_PASS` | `admin` | HTTP basic-auth password |
@@ -31,9 +31,10 @@ Ctrl-C.
 - **`GET /GetState.csv`** — serves the structural template from
   `tests/fixtures/get_state.csv` with row 6 (live values) freshly computed
   from `MockState` and the drift functions in `drift.py`. pH, redox, CPU
-  temperature, and pump flow oscillate slowly within realistic pool ranges
-  (WHO band for pH/redox; idle MCU temps for the controller). The clock
-  column reflects the host's current local time.
+  temperature, and the column-8 "Pumpe" temperature oscillate slowly within
+  realistic pool ranges (WHO band for pH/redox; idle MCU temps for the
+  controller; pool-water range for the pump sensor). The clock column
+  reflects the host's current local time.
 - **`GET /GetDmx.csv`** — current 16-channel DMX state.
 - **`POST /usrcfg.cgi`** — accepts both relay (`ENA=...&MANUAL=1`) and DMX
   (`TYPE=...&CH1_8=...&CH9_16=...`) payloads. State persists in memory until
