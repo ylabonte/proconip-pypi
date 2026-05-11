@@ -1,0 +1,115 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Mock: Start server",
+      "type": "shell",
+      "command": "${command:python.interpreterPath}",
+      "args": ["-m", "tools.proconip_mock"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PROCONIP_MOCK_HOST": "0.0.0.0",
+          "PROCONIP_MOCK_PORT": "8080"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      },
+      "detail": "Run the local mock controller on http://localhost:8080 (admin/admin). Stop via the task panel."
+    },
+    {
+      "label": "Docs: Serve",
+      "type": "shell",
+      "command": "${command:python.interpreterPath}",
+      "args": ["-m", "mkdocs", "serve"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      },
+      "detail": "Run mkdocs serve at http://127.0.0.1:8000 with live reload."
+    },
+    {
+      "label": "Docs: Build (strict)",
+      "type": "shell",
+      "command": "${command:python.interpreterPath}",
+      "args": ["-m", "mkdocs", "build", "--strict"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "build",
+      "detail": "Build the documentation in strict mode (matches CI)."
+    },
+    {
+      "label": "Test: Unit suite",
+      "type": "shell",
+      "command": "${command:python.interpreterPath}",
+      "args": ["-m", "pytest"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "detail": "Run pytest with coverage (integration tests are excluded by default)."
+    },
+    {
+      "label": "Test: Integration (mock smoke)",
+      "type": "shell",
+      "command": "${command:python.interpreterPath}",
+      "args": ["-m", "pytest", "-m", "integration", "--no-cov"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "test",
+      "detail": "Run only the opt-in integration tests that boot the mock as a subprocess."
+    },
+    {
+      "label": "Lint: Ruff check",
+      "type": "shell",
+      "command": "${command:python.interpreterPath}",
+      "args": ["-m", "ruff", "check", "."],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "detail": "Run ruff in lint-only mode (matches CI)."
+    },
+    {
+      "label": "Lint: Ruff format",
+      "type": "shell",
+      "command": "${command:python.interpreterPath}",
+      "args": ["-m", "ruff", "format", "."],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "detail": "Apply ruff's autoformatter in place."
+    },
+    {
+      "label": "Lint: Mypy",
+      "type": "shell",
+      "command": "${command:python.interpreterPath}",
+      "args": ["-m", "mypy", "src"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "detail": "Run mypy in strict mode against src/ (matches CI)."
+    },
+    {
+      "label": "Verify: All CI checks",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Lint: Ruff check",
+        "Lint: Mypy",
+        "Test: Unit suite",
+        "Docs: Build (strict)"
+      ],
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "detail": "Run every CI gate locally: ruff, mypy, pytest, mkdocs build."
+    }
+  ]
+}
