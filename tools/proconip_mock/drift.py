@@ -1,6 +1,6 @@
 """Pure functions producing slow, realistic drift on the mock controller's sensors.
 
-All values are returned in **natural units** (pH units, mV, °C, cm/s). The CSV
+All values are returned in **natural units** (pH units, mV, °C). The CSV
 renderer is responsible for converting them back to the raw integers the
 controller would emit, applying the inverse of `(raw * gain) + offset`.
 
