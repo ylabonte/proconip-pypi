@@ -66,6 +66,12 @@ include = [
     "CHANGELOG.md",
     "LICENSE",
 ]
+exclude = [
+    "tools/",
+    "tests/integration/",
+    "tests/mock/",
+    ".devcontainer/",
+]
 
 [tool.ruff]
 target-version = "py313"
@@ -97,7 +103,11 @@ exclude = ["src/proconip/_version.py"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-addopts = "--cov=proconip --cov-report=term-missing --cov-report=xml --cov-fail-under=80"
+pythonpath = ["."]
+addopts = "--cov=proconip --cov-report=term-missing --cov-report=xml --cov-fail-under=80 -m 'not integration'"
+markers = [
+    "integration: end-to-end tests that spawn the mock server as a subprocess; opt-in via -m integration",
+]
 
 [tool.coverage.run]
 source = ["proconip"]
