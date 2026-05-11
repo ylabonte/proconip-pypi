@@ -26,25 +26,9 @@ from .state import MockState
 
 _LOG = logging.getLogger("proconip_mock")
 
-_LOG_MAX_FIELD_LEN = 64
-
 Handler = Callable[[web.Request], Awaitable[web.StreamResponse]]
 
 STATE_KEY: web.AppKey[MockState] = web.AppKey("state", MockState)
-
-
-def _sanitize_for_log(value: str) -> str:
-    """Strip control characters and bound the length for safe one-line logging.
-
-    The mock logs request fields and query parameters for visibility, both of
-    which are attacker-controllable. Without sanitization, a payload like
-    ``MAN_DOSAGE=0,60%0AFAKE LOG LINE`` would inject a synthetic entry into
-    the log stream (CodeQL `py/log-injection`).
-    """
-    cleaned = "".join(c for c in value if c.isprintable())
-    if len(cleaned) > _LOG_MAX_FIELD_LEN:
-        cleaned = cleaned[:_LOG_MAX_FIELD_LEN] + "..."
-    return cleaned
 
 
 def _build_auth_middleware(username: str, password: str) -> Any:
@@ -80,18 +64,19 @@ async def _usrcfg(request: web.Request) -> web.Response:
     # a real controller's form parser would do.
     fields = await request.post()
 
+    # No raw form value is ever passed to a log call. Failures are logged as
+    # the exception class name, successes log values that have already passed
+    # through int()/== — CodeQL recognizes both as sanitization boundaries
+    # for `py/log-injection`.
     if "ENA" in fields:
         try:
             enable_str, on_str = str(fields["ENA"]).split(",", 1)
             enable_mask = int(enable_str)
             on_mask = int(on_str)
         except (ValueError, KeyError) as exc:
-            _LOG.warning("invalid ENA payload: %s", _sanitize_for_log(str(exc)))
+            _LOG.warning("invalid ENA payload (%s)", type(exc).__name__)
             return web.Response(status=400, text="Invalid ENA payload")
         state.apply_ena(enable_mask=enable_mask, on_mask=on_mask)
-        # All values logged here have passed through int()/== before reaching
-        # the log line, which is the sanitization boundary CodeQL recognizes
-        # (py/log-injection). Raw form fields never appear in log entries.
         manual = str(fields.get("MANUAL", "")) == "1"
         _LOG.info("relay update: ENA=%d,%d MANUAL=%s", enable_mask, on_mask, manual)
         return web.Response(text="OK")
@@ -102,7 +87,7 @@ async def _usrcfg(request: web.Request) -> web.Response:
             ch_high = [int(v) for v in str(fields["CH9_16"]).split(",")]
             state.apply_dmx(channels_1_8=ch_low, channels_9_16=ch_high)
         except ValueError as exc:
-            _LOG.warning("invalid DMX payload: %s", _sanitize_for_log(str(exc)))
+            _LOG.warning("invalid DMX payload (%s)", type(exc).__name__)
             return web.Response(status=400, text="Invalid DMX payload")
         _LOG.info("dmx update: %s", state.dmx)
         return web.Response(text="OK")
@@ -119,10 +104,8 @@ async def _command(request: web.Request) -> web.Response:
         target = int(target_str)
         duration = int(duration_str)
     except ValueError as exc:
-        _LOG.warning("invalid MAN_DOSAGE: %s", _sanitize_for_log(str(exc)))
+        _LOG.warning("invalid MAN_DOSAGE (%s)", type(exc).__name__)
         return web.Response(status=400, text="Invalid MAN_DOSAGE payload")
-    # Logged as %d after int() parsing — no attacker-controlled string reaches
-    # the log line (CodeQL py/log-injection sanitization boundary).
     _LOG.info("manual dosage: target=%d duration=%d", target, duration)
     return web.Response(text="OK")
 
