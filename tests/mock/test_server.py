@@ -12,7 +12,7 @@ import pytest
 from aiohttp.test_utils import TestClient, TestServer
 
 from proconip.definitions import GetDmxData, GetStateData
-from tools.proconip_mock.server import create_app
+from tools.proconip_mock.server import _sanitize_for_log, create_app
 from tools.proconip_mock.state import MockState
 
 
@@ -113,3 +113,68 @@ class TestCommandHtm:
         assert response.status == 200
         text = await response.text()
         assert text.strip() == "OK"
+
+
+class TestErrorResponsesDoNotLeakExceptionText:
+    """CodeQL: error responses must not echo internal exception details
+    (information exposure through an exception)."""
+
+    async def test_invalid_ena_payload_returns_generic_message(self, client: TestClient) -> None:
+        response = await client.post(
+            "/usrcfg.cgi",
+            data="ENA=not-a-number,0&MANUAL=1",
+            headers={
+                "Authorization": _basic("admin", "secret"),
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+        )
+        body = await response.text()
+        assert response.status == 400
+        # The literal from a Python int() failure must not appear
+        assert "invalid literal" not in body.lower()
+        assert "not-a-number" not in body
+        # And the body should be short — generic error, not a stack trace
+        assert len(body) < 80
+
+    async def test_invalid_dmx_payload_returns_generic_message(self, client: TestClient) -> None:
+        response = await client.post(
+            "/usrcfg.cgi",
+            data="TYPE=0&LEN=16&CH1_8=oops,2,3,4,5,6,7,8&CH9_16=0,0,0,0,0,0,0,0&DMX512=1",
+            headers={
+                "Authorization": _basic("admin", "secret"),
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+        )
+        body = await response.text()
+        assert response.status == 400
+        assert "invalid literal" not in body.lower()
+        assert "oops" not in body
+        assert len(body) < 80
+
+
+class TestSanitizeForLog:
+    """CodeQL: user-controlled values logged into a single line must be
+    stripped of control characters that could spoof other log entries."""
+
+    def test_passes_printable_through(self) -> None:
+        assert _sanitize_for_log("0,60") == "0,60"
+
+    def test_strips_newlines_to_prevent_log_injection(self) -> None:
+        # Newlines collapsed → attacker can't forge a fake second log entry.
+        # Surrounding printable text is preserved so logs remain useful.
+        cleaned = _sanitize_for_log("0,60\nFAKE LOG LINE\r\n")
+        assert "\n" not in cleaned
+        assert "\r" not in cleaned
+        assert cleaned == "0,60FAKE LOG LINE"
+
+    def test_strips_other_control_chars(self) -> None:
+        # ESC, NUL, BEL — anything not isprintable
+        assert _sanitize_for_log("a\x00b\x07c\x1bd") == "abcd"
+
+    def test_truncates_long_input(self) -> None:
+        out = _sanitize_for_log("x" * 500)
+        assert len(out) < 100  # well below the unbounded input length
+        assert out.endswith("...")
+
+    def test_empty_input(self) -> None:
+        assert _sanitize_for_log("") == ""

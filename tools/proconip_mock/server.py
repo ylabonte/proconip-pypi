@@ -26,9 +26,25 @@ from .state import MockState
 
 _LOG = logging.getLogger("proconip_mock")
 
+_LOG_MAX_FIELD_LEN = 64
+
 Handler = Callable[[web.Request], Awaitable[web.StreamResponse]]
 
 STATE_KEY: web.AppKey[MockState] = web.AppKey("state", MockState)
+
+
+def _sanitize_for_log(value: str) -> str:
+    """Strip control characters and bound the length for safe one-line logging.
+
+    The mock logs request fields and query parameters for visibility, both of
+    which are attacker-controllable. Without sanitization, a payload like
+    ``MAN_DOSAGE=0,60%0AFAKE LOG LINE`` would inject a synthetic entry into
+    the log stream (CodeQL `py/log-injection`).
+    """
+    cleaned = "".join(c for c in value if c.isprintable())
+    if len(cleaned) > _LOG_MAX_FIELD_LEN:
+        cleaned = cleaned[:_LOG_MAX_FIELD_LEN] + "..."
+    return cleaned
 
 
 def _build_auth_middleware(username: str, password: str) -> Any:
@@ -67,8 +83,13 @@ async def _usrcfg(request: web.Request) -> web.Response:
             enable_str, on_str = fields["ENA"].split(",", 1)
             state.apply_ena(enable_mask=int(enable_str), on_mask=int(on_str))
         except (ValueError, KeyError) as exc:
-            return web.Response(status=400, text=f"Invalid ENA payload: {exc}")
-        _LOG.info("relay update: ENA=%s MANUAL=%s", fields["ENA"], fields.get("MANUAL"))
+            _LOG.warning("invalid ENA payload: %s", _sanitize_for_log(str(exc)))
+            return web.Response(status=400, text="Invalid ENA payload")
+        _LOG.info(
+            "relay update: ENA=%s MANUAL=%s",
+            _sanitize_for_log(fields["ENA"]),
+            _sanitize_for_log(fields.get("MANUAL", "")),
+        )
         return web.Response(text="OK")
 
     if "CH1_8" in fields and "CH9_16" in fields:
@@ -77,7 +98,8 @@ async def _usrcfg(request: web.Request) -> web.Response:
             ch_high = [int(v) for v in fields["CH9_16"].split(",")]
             state.apply_dmx(channels_1_8=ch_low, channels_9_16=ch_high)
         except ValueError as exc:
-            return web.Response(status=400, text=f"Invalid DMX payload: {exc}")
+            _LOG.warning("invalid DMX payload: %s", _sanitize_for_log(str(exc)))
+            return web.Response(status=400, text="Invalid DMX payload")
         _LOG.info("dmx update: %s", state.dmx)
         return web.Response(text="OK")
 
@@ -88,7 +110,7 @@ async def _command(request: web.Request) -> web.Response:
     dosage = request.query.get("MAN_DOSAGE")
     if dosage is None:
         return web.Response(status=400, text="Missing MAN_DOSAGE query parameter")
-    _LOG.info("manual dosage: %s", dosage)
+    _LOG.info("manual dosage: %s", _sanitize_for_log(dosage))
     return web.Response(text="OK")
 
 
