@@ -50,11 +50,18 @@ class MockState:
     def csv_relay_value(self, bit: int) -> int:
         """Encode the relay's state as the 0–3 value the controller emits.
 
-        - 0 = Auto (off)
-        - 1 = Auto (on)  ← never produced by the mock; we don't simulate
-              automation, so manual-off becomes 2 and so on.
-        - 2 = Off (manual)
-        - 3 = On (manual)
+        Both bits independently follow the incoming ENA payload, so all four
+        combinations are reachable:
+
+        - 0 = Auto (off)  ``relay_enabled=False, relay_on=False``
+        - 1 = Auto (on)   ``relay_enabled=False, relay_on=True``
+        - 2 = Off         ``relay_enabled=True,  relay_on=False``
+        - 3 = On          ``relay_enabled=True,  relay_on=True``
+
+        The mock starts at all-zero and there's no internal scheduler that
+        would set `Auto on`, but a client preserving an existing relay state
+        via `GetStateData.determine_overall_relay_bit_state()` may legitimately
+        POST `ENA=0,1<<bit`, which lands here as 1.
         """
         manual = self.relay_enabled[bit]
         on = self.relay_on[bit]

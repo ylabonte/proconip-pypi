@@ -6,9 +6,11 @@ from tools.proconip_mock.state import MockState
 
 
 class TestRelayInit:
-    def test_starts_with_8_internal_relays(self) -> None:
+    def test_starts_with_combined_16_bit_relay_state(self) -> None:
         s = MockState()
-        assert len(s.relay_enabled) == 16  # internal + external bits in one bitmap
+        # Bits 0–7 are the internal relays, 8–15 are the external relay
+        # extension. The mock tracks them in one 16-element list each.
+        assert len(s.relay_enabled) == 16
         assert len(s.relay_on) == 16
         assert all(not e for e in s.relay_enabled)
         assert all(not o for o in s.relay_on)
@@ -46,18 +48,21 @@ class TestApplyEnaPayload:
 
 
 class TestRelayValueForCsv:
-    """The CSV row encodes per-relay state as 0=Auto-off, 1=Auto-on, 2=Off, 3=On."""
+    """The CSV row encodes per-relay state as 0=Auto-off, 1=Auto-on, 2=Off, 3=On.
 
-    def test_auto_off(self) -> None:
+    All four are reachable depending on the incoming ENA payload.
+    """
+
+    def test_auto_off_is_default(self) -> None:
         s = MockState()
         assert s.csv_relay_value(0) == 0
 
-    def test_auto_on_not_representable_directly(self) -> None:
-        # The mock can't simulate the controller's automation; we never emit "1"
-        # except if a test sets it via direct manipulation. Default is auto-off.
+    def test_auto_on_when_only_on_bit_is_set(self) -> None:
+        # Clients preserving an Auto-on relay via determine_overall_relay_bit_state()
+        # can POST `ENA=0,<bit>` — the mock must round-trip this back as 1.
         s = MockState()
-        for i in range(16):
-            assert s.csv_relay_value(i) in (0, 2, 3)
+        s.apply_ena(enable_mask=0, on_mask=1)
+        assert s.csv_relay_value(0) == 1
 
     def test_manual_off(self) -> None:
         s = MockState()
