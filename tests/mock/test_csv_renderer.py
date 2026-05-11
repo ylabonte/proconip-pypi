@@ -11,7 +11,7 @@ from datetime import time as dt_time
 import pytest
 
 from proconip.definitions import GetDmxData, GetStateData
-from tools.proconip_mock import drift
+from tools.proconip_mock import csv_renderer, drift
 from tools.proconip_mock.csv_renderer import render_get_dmx, render_get_state
 from tools.proconip_mock.state import MockState
 
@@ -63,6 +63,21 @@ class TestGetStateRendering:
         ph2 = GetStateData(render_get_state(s2)).ph_electrode.value
         assert ph1 != ph2
         assert ph2 == pytest.approx(drift.PH_CENTER + drift.PH_AMPLITUDE, abs=0.005)
+
+
+class TestTemplateCaching:
+    """The fixture template is parsed once at module load and reused across
+    requests; render_get_state must not re-hit disk on every call."""
+
+    def test_template_loaded_only_once_across_many_renders(self) -> None:
+        csv_renderer._load_template.cache_clear()
+        before = csv_renderer._load_template.cache_info()
+        s = MockState(monotonic=lambda: 100.0)
+        for _ in range(50):
+            render_get_state(s)
+        after = csv_renderer._load_template.cache_info()
+        assert after.misses - before.misses == 1
+        assert after.hits >= 49
 
 
 class TestGetDmxRendering:
