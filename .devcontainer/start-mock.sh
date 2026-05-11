@@ -8,9 +8,12 @@
 # Invoked by .devcontainer/devcontainer.json's `postStartCommand` and
 # safe to run manually inside the container.
 
-set -uo pipefail
+set -euo pipefail
 
-HOST="${PROCONIP_MOCK_HOST:-0.0.0.0}"
+# Default mirrors the mock's own default in __main__.py (loopback-only).
+# `.devcontainer/devcontainer.json` overrides this to 0.0.0.0 so the forwarded
+# port works from outside the container.
+export PROCONIP_MOCK_HOST="${PROCONIP_MOCK_HOST:-127.0.0.1}"
 PORT="${PROCONIP_MOCK_PORT:-8080}"
 USER="${PROCONIP_MOCK_USER:-admin}"
 PASS="${PROCONIP_MOCK_PASS:-admin}"
@@ -30,7 +33,7 @@ for _ in $(seq 1 "$READY_TIMEOUT_S"); do
   fi
   if curl --silent --fail --max-time 1 -u "$USER:$PASS" \
         "http://localhost:$PORT/GetState.csv" >/dev/null; then
-    echo "ProCon.IP mock ready on http://$HOST:$PORT (pid=$PID, log=$LOG)"
+    echo "ProCon.IP mock ready on http://$PROCONIP_MOCK_HOST:$PORT (pid=$PID, log=$LOG)"
     exit 0
   fi
   sleep 1
