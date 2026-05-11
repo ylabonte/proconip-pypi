@@ -16,7 +16,8 @@
   },
   "remoteEnv": {
     "PROCONIP_MOCK_HOST": "0.0.0.0",
-    "PROCONIP_MOCK_PORT": "8080"
+    "PROCONIP_MOCK_PORT": "8080",
+    "PROCONIP_MOCK_DMX": "1"
   },
   "customizations": {
     "vscode": {

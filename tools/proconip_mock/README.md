@@ -25,6 +25,8 @@ and stays up. Stop with Ctrl-C.
 | `PROCONIP_MOCK_PORT` | `8080` | Bind port |
 | `PROCONIP_MOCK_USER` | `admin` | HTTP basic-auth user |
 | `PROCONIP_MOCK_PASS` | `admin` | HTTP basic-auth password |
+| `PROCONIP_MOCK_DMX` | (unset) | Set to `1` to turn on every DMX-related bit (`config_other_enable = 4 \| 256 = 260`). Lets DMX-gated client code (`GetStateData.is_dmx_enabled()`, `is_dmx_extension_enabled()`) take the enabled branch without hand-picking bits. |
+| `PROCONIP_MOCK_CONFIG_OTHER_ENABLE` | `0` | Raw integer override for SYSINFO[5] (the `config_other_enable` bitfield). Bit layout is documented on `MockState` in `tools/proconip_mock/state.py`. If both this and `PROCONIP_MOCK_DMX` are set, their values are OR'd together. |
 
 ## What it does
 
@@ -70,3 +72,27 @@ async def main() -> None:
         print(f"pH: {state.ph_electrode.display_value}")
         print(f"Redox: {state.redox_electrode.display_value}")
 ```
+
+## DMX
+
+The mock's DMX endpoints (`POST /usrcfg.cgi` with `CH1_8`/`CH9_16`, `GET
+/GetDmx.csv`) work in any configuration. Some client code, however, only
+calls them after checking `GetStateData.is_dmx_enabled()`; the fixture's
+default `config_other_enable = 0` makes that check return `False` and
+those code paths never fire. Flip the DMX bits at startup to unblock
+them:
+
+```bash
+PROCONIP_MOCK_DMX=1 python -m tools.proconip_mock
+
+# Set DMX channels 1–8 — channel 1 to 255, the rest off
+curl -u admin:admin -X POST \
+     -d 'CH1_8=255,0,0,0,0,0,0,0&CH9_16=0,0,0,0,0,0,0,0' \
+     http://localhost:8080/usrcfg.cgi
+
+# Read them back
+curl -u admin:admin http://localhost:8080/GetDmx.csv
+```
+
+The `.devcontainer/devcontainer.json` already sets `PROCONIP_MOCK_DMX=1`
+in `remoteEnv`, so containers default to DMX-on for development.
