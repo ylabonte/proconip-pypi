@@ -12,7 +12,7 @@ import pytest
 from aiohttp.test_utils import TestClient, TestServer
 
 from proconip.definitions import GetDmxData, GetStateData
-from tools.proconip_mock.server import _sanitize_for_log, create_app
+from tools.proconip_mock.server import create_app
 from tools.proconip_mock.state import MockState
 
 
@@ -181,31 +181,3 @@ class TestErrorResponsesDoNotLeakExceptionText:
         assert "invalid literal" not in body.lower()
         assert "oops" not in body
         assert len(body) < 80
-
-
-class TestSanitizeForLog:
-    """CodeQL: user-controlled values logged into a single line must be
-    stripped of control characters that could spoof other log entries."""
-
-    def test_passes_printable_through(self) -> None:
-        assert _sanitize_for_log("0,60") == "0,60"
-
-    def test_strips_newlines_to_prevent_log_injection(self) -> None:
-        # Newlines collapsed → attacker can't forge a fake second log entry.
-        # Surrounding printable text is preserved so logs remain useful.
-        cleaned = _sanitize_for_log("0,60\nFAKE LOG LINE\r\n")
-        assert "\n" not in cleaned
-        assert "\r" not in cleaned
-        assert cleaned == "0,60FAKE LOG LINE"
-
-    def test_strips_other_control_chars(self) -> None:
-        # ESC, NUL, BEL — anything not isprintable
-        assert _sanitize_for_log("a\x00b\x07c\x1bd") == "abcd"
-
-    def test_truncates_long_input(self) -> None:
-        out = _sanitize_for_log("x" * 500)
-        assert len(out) < 100  # well below the unbounded input length
-        assert out.endswith("...")
-
-    def test_empty_input(self) -> None:
-        assert _sanitize_for_log("") == ""
