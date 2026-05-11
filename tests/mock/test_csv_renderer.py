@@ -65,6 +65,31 @@ class TestGetStateRendering:
         assert ph2 == pytest.approx(drift.PH_CENTER + drift.PH_AMPLITUDE, abs=0.005)
 
 
+class TestConfigOtherEnableRendering:
+    """``MockState.config_other_enable`` must be reflected in the SYSINFO
+    row so client-side feature checks (`is_dmx_enabled()`, …) see the
+    intended state without us touching the shared `tests/fixtures/`."""
+
+    def test_default_state_keeps_fixture_value(self) -> None:
+        parsed = GetStateData(render_get_state(_state_at_t0()))
+        # Matches the fixture's SYSINFO[5]; existing
+        # test_get_state_config_other_enable still passes on the same file.
+        assert parsed.config_other_enable == 0
+        assert parsed.is_dmx_enabled() is False
+        assert parsed.is_dmx_extension_enabled() is False
+
+    def test_dmx_bits_enable_client_flags(self) -> None:
+        clock = iter([100.0, 100.0])
+        s = MockState(
+            monotonic=lambda: next(clock),
+            config_other_enable=260,  # bit 2 (DMX) | bit 8 (DMX extension)
+        )
+        parsed = GetStateData(render_get_state(s))
+        assert parsed.config_other_enable == 260
+        assert parsed.is_dmx_enabled() is True
+        assert parsed.is_dmx_extension_enabled() is True
+
+
 class TestTemplateCaching:
     """The fixture template is parsed once at module load and reused across
     requests; render_get_state must not re-hit disk on every call."""

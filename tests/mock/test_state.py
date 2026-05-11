@@ -105,3 +105,19 @@ class TestElapsedSeconds:
         s = MockState(monotonic=lambda: next(clock))
         # Constructor consumes 1000.0 as t0, next call yields elapsed
         assert s.elapsed_seconds() == pytest.approx(3.5)
+
+
+class TestConfigOtherEnable:
+    """`config_other_enable` is the SYSINFO bitfield that gates client-side
+    feature checks (`is_dmx_enabled()`, `is_relay_extension_enabled()`, …).
+    Default is 0 to match the shared fixture; tests/clients that need a
+    feature on construct MockState with the appropriate bits."""
+
+    def test_defaults_to_zero(self) -> None:
+        s = MockState()
+        assert s.config_other_enable == 0
+
+    def test_accepts_explicit_value(self) -> None:
+        # 260 = bit 2 (DMX) | bit 8 (DMX extension)
+        s = MockState(config_other_enable=260)
+        assert s.config_other_enable == 260
