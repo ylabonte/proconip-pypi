@@ -1,0 +1,50 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Mock: Debug server",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "tools.proconip_mock",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PROCONIP_MOCK_HOST": "127.0.0.1",
+        "PROCONIP_MOCK_PORT": "8080",
+        "PROCONIP_MOCK_USER": "admin",
+        "PROCONIP_MOCK_PASS": "admin"
+      }
+    },
+    {
+      "name": "Pytest: Current file",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "args": ["${file}", "-vv", "--no-cov"]
+    },
+    {
+      "name": "Pytest: Whole unit suite",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "args": ["-vv"]
+    },
+    {
+      "name": "Pytest: Integration smoke",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "args": ["-m", "integration", "--no-cov", "-vv"]
+    }
+  ]
+}
