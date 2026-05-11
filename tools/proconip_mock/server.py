@@ -81,19 +81,19 @@ async def _usrcfg(request: web.Request) -> web.Response:
     fields = await request.post()
 
     if "ENA" in fields:
-        ena_value = str(fields["ENA"])
-        manual_value = str(fields.get("MANUAL", ""))
         try:
-            enable_str, on_str = ena_value.split(",", 1)
-            state.apply_ena(enable_mask=int(enable_str), on_mask=int(on_str))
+            enable_str, on_str = str(fields["ENA"]).split(",", 1)
+            enable_mask = int(enable_str)
+            on_mask = int(on_str)
         except (ValueError, KeyError) as exc:
             _LOG.warning("invalid ENA payload: %s", _sanitize_for_log(str(exc)))
             return web.Response(status=400, text="Invalid ENA payload")
-        _LOG.info(
-            "relay update: ENA=%s MANUAL=%s",
-            _sanitize_for_log(ena_value),
-            _sanitize_for_log(manual_value),
-        )
+        state.apply_ena(enable_mask=enable_mask, on_mask=on_mask)
+        # All values logged here have passed through int()/== before reaching
+        # the log line, which is the sanitization boundary CodeQL recognizes
+        # (py/log-injection). Raw form fields never appear in log entries.
+        manual = str(fields.get("MANUAL", "")) == "1"
+        _LOG.info("relay update: ENA=%d,%d MANUAL=%s", enable_mask, on_mask, manual)
         return web.Response(text="OK")
 
     if "CH1_8" in fields and "CH9_16" in fields:
