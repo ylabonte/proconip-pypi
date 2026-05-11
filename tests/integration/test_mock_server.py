@@ -69,23 +69,39 @@ def mock_server() -> Iterator[ConfigObject]:
         "PROCONIP_MOCK_USER": "admin",
         "PROCONIP_MOCK_PASS": "admin",
     }
+    # Capture stdout+stderr so a failed startup (port conflict, import error,
+    # missing dependency) surfaces actionable detail in the test report
+    # rather than just "did not start within Xs".
     proc = subprocess.Popen(
         [sys.executable, "-m", "tools.proconip_mock"],
         cwd=REPO_ROOT,
         env=env,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
     )
     try:
-        _wait_until_ready("127.0.0.1", port)
+        try:
+            _wait_until_ready("127.0.0.1", port)
+        except RuntimeError as exc:
+            proc.terminate()
+            try:
+                output, _ = proc.communicate(timeout=2.0)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                output, _ = proc.communicate()
+            tail = (output or b"").decode("utf-8", errors="replace").strip()
+            raise RuntimeError(
+                f"{exc}\n--- mock subprocess output ---\n{tail or '(empty)'}\n--- end ---"
+            ) from exc
         yield ConfigObject(f"http://127.0.0.1:{port}", "admin", "admin")
     finally:
-        proc.terminate()
-        try:
-            proc.wait(timeout=3.0)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-            proc.wait()
+        if proc.poll() is None:
+            proc.terminate()
+            try:
+                proc.wait(timeout=3.0)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
 
 
 async def test_get_state_round_trip(mock_server: ConfigObject) -> None:
