@@ -39,13 +39,19 @@ class TestCpuTempDrift:
             assert 28.0 <= drift.cpu_temp_c(float(t)) <= 32.0
 
 
-class TestPumpFlow:
-    def test_at_t_zero_is_center(self) -> None:
-        assert drift.pump_flow_cm_s(0.0) == pytest.approx(7.0)
+class TestPumpTemp:
+    """Column 8 in the fixture is named 'Pumpe' with unit °C — it's a
+    temperature sensor on the pump (water temperature near the pump or
+    pump-motor temperature, depending on how it's wired). Drift values
+    represent a pool-water temperature, which is what most installations
+    use this channel for."""
 
-    def test_stays_within_band(self) -> None:
-        for t in range(0, 600):
-            assert 6.7 <= drift.pump_flow_cm_s(float(t)) <= 7.3
+    def test_at_t_zero_is_center(self) -> None:
+        assert drift.pump_temp_c(0.0) == pytest.approx(27.0)
+
+    def test_stays_within_realistic_pool_temp_band(self) -> None:
+        for t in range(0, 7200, 7):
+            assert 26.0 <= drift.pump_temp_c(float(t)) <= 28.0
 
 
 class TestPackedTime:
@@ -68,7 +74,7 @@ class TestSensorsBundle:
             "ph": pytest.approx(7.40),
             "redox_mv": pytest.approx(700.0),
             "cpu_temp_c": pytest.approx(30.0),
-            "pump_flow_cm_s": pytest.approx(7.0),
+            "pump_temp_c": pytest.approx(27.0),
         }
 
     def test_advances_with_time(self) -> None:
@@ -84,12 +90,12 @@ class TestSensorsBundle:
         assert s["redox_mv"] == pytest.approx(700.0)
         # And a tiny tick later, all values move
         s2 = drift.sensors(elapsed_seconds=1.0)
-        assert s2["pump_flow_cm_s"] != pytest.approx(7.0, abs=1e-12)
+        assert s2["pump_temp_c"] != pytest.approx(27.0, abs=1e-12)
         # Confirm sin shape: derivative at zero is positive for all (since sin(t/p))
         assert s2["ph"] > 7.40
         assert s2["redox_mv"] > 700.0
         assert s2["cpu_temp_c"] > 30.0
-        assert s2["pump_flow_cm_s"] > 7.0
+        assert s2["pump_temp_c"] > 27.0
         # Cross-check expected sign with explicit computation
         assert s2["ph"] == pytest.approx(
             7.40 + 0.10 * math.sin(2.0 * math.pi * 1.0 / drift.PH_PERIOD_SECONDS)
