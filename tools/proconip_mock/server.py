@@ -14,6 +14,7 @@ a `WWW-Authenticate` header so real clients raise `BadCredentialsException`
 on the failure path too.
 """
 
+import hmac
 import logging
 from base64 import b64encode
 from collections.abc import Awaitable, Callable
@@ -32,11 +33,16 @@ STATE_KEY: web.AppKey[MockState] = web.AppKey("state", MockState)
 
 
 def _build_auth_middleware(username: str, password: str) -> Any:
-    expected = "Basic " + b64encode(f"{username}:{password}".encode()).decode()
+    expected_token = b64encode(f"{username}:{password}".encode()).decode()
 
     @web.middleware
     async def auth(request: web.Request, handler: Handler) -> web.StreamResponse:
-        if request.headers.get(hdrs.AUTHORIZATION) != expected:
+        # Per RFC 7617: scheme is a case-insensitive token; the credentials
+        # token is the rest of the header value with surrounding whitespace
+        # ignored. `hmac.compare_digest` keeps the comparison constant-time.
+        header = request.headers.get(hdrs.AUTHORIZATION, "")
+        scheme, _, token = header.partition(" ")
+        if scheme.lower() != "basic" or not hmac.compare_digest(token.strip(), expected_token):
             return web.Response(
                 status=401,
                 headers={"WWW-Authenticate": 'Basic realm="ProCon.IP"'},

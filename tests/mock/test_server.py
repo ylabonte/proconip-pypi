@@ -51,6 +51,18 @@ class TestAuth:
         )
         assert response.status == 200
 
+    async def test_lowercase_basic_scheme_accepted(self, client: TestClient) -> None:
+        # Per RFC 7617 the auth scheme is a case-insensitive token, so
+        # ``basic <token>`` must work the same as ``Basic <token>``.
+        token = b64encode(b"admin:secret").decode()
+        response = await client.get("/GetState.csv", headers={"Authorization": f"basic {token}"})
+        assert response.status == 200
+
+    async def test_trailing_whitespace_in_token_tolerated(self, client: TestClient) -> None:
+        token = b64encode(b"admin:secret").decode()
+        response = await client.get("/GetState.csv", headers={"Authorization": f"Basic {token}  "})
+        assert response.status == 200
+
 
 class TestGetStateRoute:
     async def test_returns_parseable_csv(self, client: TestClient) -> None:
