@@ -26,12 +26,22 @@ LOG="/tmp/proconip-mock.log"
 READY_TIMEOUT_S=15
 PYTHON="${PYTHON:-python}"
 
+# `0.0.0.0` and `::` are valid for bind() but not connectable from a
+# client; mirror __main__.py's substitution so the logged URLs in this
+# script are usable in a browser/curl. The real bind is kept in the
+# parenthesized status so the operator can still see what was used.
+if [ "$PROCONIP_MOCK_HOST" = "0.0.0.0" ] || [ "$PROCONIP_MOCK_HOST" = "::" ]; then
+  DISPLAY_HOST="localhost"
+else
+  DISPLAY_HOST="$PROCONIP_MOCK_HOST"
+fi
+
 # Idempotency: if a healthy mock is already listening, do nothing.
 # Stale processes that bind the port but don't respond will fail the
 # curl check and we'll surface the resulting bind error below.
 if curl --silent --fail --max-time 1 -u "$USER:$PASS" \
       "http://localhost:$PORT/GetState.csv" >/dev/null 2>&1; then
-  echo "ProCon.IP mock already running on http://$PROCONIP_MOCK_HOST:$PORT — leaving it alone"
+  echo "ProCon.IP mock already running on http://$DISPLAY_HOST:$PORT (bind=$PROCONIP_MOCK_HOST) — leaving it alone"
   exit 0
 fi
 
@@ -47,7 +57,7 @@ for _ in $(seq 1 "$READY_TIMEOUT_S"); do
   fi
   if curl --silent --fail --max-time 1 -u "$USER:$PASS" \
         "http://localhost:$PORT/GetState.csv" >/dev/null; then
-    echo "ProCon.IP mock ready on http://$PROCONIP_MOCK_HOST:$PORT (pid=$PID, log=$LOG)"
+    echo "ProCon.IP mock ready on http://$DISPLAY_HOST:$PORT (bind=$PROCONIP_MOCK_HOST, pid=$PID, log=$LOG)"
     exit 0
   fi
   sleep 1
