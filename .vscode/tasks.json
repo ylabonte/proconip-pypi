@@ -9,7 +9,6 @@
       "options": {
         "cwd": "${workspaceFolder}",
         "env": {
-          "PROCONIP_MOCK_HOST": "127.0.0.1",
           "PROCONIP_MOCK_PORT": "8080"
         }
       },
@@ -19,13 +18,13 @@
         "panel": "dedicated",
         "reveal": "always"
       },
-      "detail": "Run the local mock controller on http://127.0.0.1:8080 (admin/admin). Loopback-only by default; the devcontainer config overrides this to 0.0.0.0 for port forwarding. Stop via the task panel."
+      "detail": "Run the local mock controller. Bind host is inherited from the environment so the devcontainer's `remoteEnv` (0.0.0.0) wins inside the container while local runs stay on the __main__.py default (127.0.0.1). Stop via the task panel."
     },
     {
       "label": "Docs: Serve",
       "type": "shell",
       "command": "${command:python.interpreterPath}",
-      "args": ["-m", "mkdocs", "serve"],
+      "args": ["-m", "mkdocs", "serve", "--dev-addr", "0.0.0.0:8000"],
       "options": { "cwd": "${workspaceFolder}" },
       "isBackground": true,
       "problemMatcher": [],
@@ -33,7 +32,7 @@
         "panel": "dedicated",
         "reveal": "always"
       },
-      "detail": "Run mkdocs serve at http://127.0.0.1:8000 with live reload."
+      "detail": "Run mkdocs serve at http://localhost:8000 with live reload. Binds 0.0.0.0 so the forwarded 8000 port works in devcontainers/Codespaces; the docs preview is read-only static content with no auth, so LAN exposure is acceptable for a dev preview."
     },
     {
       "label": "Docs: Build (strict)",
