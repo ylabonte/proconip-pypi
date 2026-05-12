@@ -47,7 +47,7 @@ def _load_template() -> tuple[
     ``_load_template.cache_clear()`` if you ever need to pick up a fresh
     fixture (only useful inside tests that rewrite the fixture file).
     """
-    text = GET_STATE_FIXTURE.read_text()
+    text = GET_STATE_FIXTURE.read_text(encoding="utf-8")
     lines = [line for line in text.splitlines() if line.strip()]
     sysinfo = lines[0].split(",")
     names = lines[1].split(",")
