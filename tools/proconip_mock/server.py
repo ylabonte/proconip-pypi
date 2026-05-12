@@ -79,10 +79,10 @@ async def _usrcfg(request: web.Request) -> web.Response:
             enable_str, on_str = str(fields["ENA"]).split(",", 1)
             enable_mask = int(enable_str)
             on_mask = int(on_str)
+            state.apply_ena(enable_mask=enable_mask, on_mask=on_mask)
         except (ValueError, KeyError) as exc:
             _LOG.warning("invalid ENA payload (%s)", type(exc).__name__)
             return web.Response(status=400, text="Invalid ENA payload")
-        state.apply_ena(enable_mask=enable_mask, on_mask=on_mask)
         manual = str(fields.get("MANUAL", "")) == "1"
         _LOG.info("relay update: ENA=%d,%d MANUAL=%s", enable_mask, on_mask, manual)
         return web.Response(text="OK")

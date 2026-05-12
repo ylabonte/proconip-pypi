@@ -61,7 +61,21 @@ class MockState:
         ``enable_mask`` selects which relays are in manual mode (bit set =
         manual, bit clear = auto); ``on_mask`` selects the ones whose output
         is currently driven.
+
+        Raises:
+            ValueError: If either mask is negative. Python's infinite-
+                precision integers treat ``-1`` as having every bit set, so
+                a negative mask would silently flip every relay; the real
+                hardware register is unsigned. Bits above the 16-bit
+                hardware register width are silently dropped.
         """
+        if enable_mask < 0 or on_mask < 0:
+            raise ValueError(
+                f"ENA masks must be non-negative; got enable_mask={enable_mask}, on_mask={on_mask}"
+            )
+        valid_bits = (1 << NUM_RELAY_BITS) - 1
+        enable_mask &= valid_bits
+        on_mask &= valid_bits
         for bit in range(NUM_RELAY_BITS):
             mask = 1 << bit
             self.relay_enabled[bit] = bool(enable_mask & mask)

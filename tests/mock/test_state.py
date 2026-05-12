@@ -46,6 +46,30 @@ class TestApplyEnaPayload:
         assert s.relay_enabled[8] is True
         assert s.relay_on[8] is True
 
+    def test_negative_enable_mask_is_rejected(self) -> None:
+        # Python's two's-complement `-1` has every bit set, so without
+        # validation a client posting ENA=-1,-1 would flip every relay.
+        s = MockState()
+        with pytest.raises(ValueError):
+            s.apply_ena(enable_mask=-1, on_mask=0)
+
+    def test_negative_on_mask_is_rejected(self) -> None:
+        s = MockState()
+        with pytest.raises(ValueError):
+            s.apply_ena(enable_mask=0, on_mask=-1)
+
+    def test_masks_above_16_bits_are_clamped(self) -> None:
+        # Bits 16+ have no corresponding relay; the real hardware register
+        # is 16 wide, so anything above is silently dropped.
+        s = MockState()
+        s.apply_ena(enable_mask=1 | (1 << 16), on_mask=1 | (1 << 17))
+        # Bit 0 still on for both lists
+        assert s.relay_enabled[0] is True
+        assert s.relay_on[0] is True
+        # No spurious effects beyond the 16 tracked bits
+        assert all(not s.relay_enabled[i] for i in range(1, 16))
+        assert all(not s.relay_on[i] for i in range(1, 16))
+
 
 class TestRelayValueForCsv:
     """The CSV row encodes per-relay state as 0=Auto-off, 1=Auto-on, 2=Off, 3=On.

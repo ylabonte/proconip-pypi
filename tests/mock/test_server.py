@@ -179,6 +179,19 @@ class TestErrorResponsesDoNotLeakExceptionText:
         # And the body should be short — generic error, not a stack trace
         assert len(body) < 80
 
+    async def test_negative_ena_payload_returns_400(self, client: TestClient) -> None:
+        response = await client.post(
+            "/usrcfg.cgi",
+            data="ENA=-1,-1&MANUAL=1",
+            headers={
+                "Authorization": _basic("admin", "secret"),
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+        )
+        body = await response.text()
+        assert response.status == 400
+        assert body == "Invalid ENA payload"
+
     async def test_invalid_dmx_payload_returns_generic_message(self, client: TestClient) -> None:
         response = await client.post(
             "/usrcfg.cgi",
