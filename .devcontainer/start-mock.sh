@@ -40,7 +40,7 @@ fi
 # Stale processes that bind the port but don't respond will fail the
 # curl check and we'll surface the resulting bind error below.
 if curl --silent --fail --max-time 1 -u "$USER:$PASS" \
-      "http://localhost:$PORT/GetState.csv" >/dev/null 2>&1; then
+      "http://$DISPLAY_HOST:$PORT/GetState.csv" >/dev/null 2>&1; then
   echo "ProCon.IP mock already running on http://$DISPLAY_HOST:$PORT (bind=$PROCONIP_MOCK_HOST) — leaving it alone"
   exit 0
 fi
@@ -56,7 +56,7 @@ for _ in $(seq 1 "$READY_TIMEOUT_S"); do
     exit 1
   fi
   if curl --silent --fail --max-time 1 -u "$USER:$PASS" \
-        "http://localhost:$PORT/GetState.csv" >/dev/null; then
+        "http://$DISPLAY_HOST:$PORT/GetState.csv" >/dev/null; then
     echo "ProCon.IP mock ready on http://$DISPLAY_HOST:$PORT (bind=$PROCONIP_MOCK_HOST, pid=$PID, log=$LOG)"
     exit 0
   fi
