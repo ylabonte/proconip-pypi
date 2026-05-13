@@ -29,7 +29,7 @@ jobs:
           cache-dependency-path: "pyproject.toml"
 
       - name: Install
-        run: pip install -e ".[docs]"
+        run: pip install -e . --group docs
 
       - name: Build site
         run: mkdocs build --strict --site-dir _site

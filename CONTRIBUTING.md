@@ -9,7 +9,7 @@ cd proconip-pypi
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 
-pip install -e ".[dev,test]"
+pip install -e . --group dev --group test
 pre-commit install
 ```
 
