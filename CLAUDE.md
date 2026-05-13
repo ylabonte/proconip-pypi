@@ -76,8 +76,10 @@ if behavior changes, change the free function and the wrapper picks it up.
   `pyproject.toml` (`dynamic = ["version"]`).
 - **Runtime deps**: declared in `[project.dependencies]` in `pyproject.toml`.
   There is no `setup.py` — don't recreate one.
-- **Optional deps**: declared in `[project.optional-dependencies]`
-  (`dev`, `test`, `docs`). There are no `requirements*.txt` files.
+- **Dev/test/docs deps**: declared in `[dependency-groups]` (PEP 735)
+  (`dev`, `test`, `docs`). Installed with `pip install --group <name>`
+  (requires pip ≥ 25.1). There are no `requirements*.txt` files and no
+  `[project.optional-dependencies]` — these aren't user-facing extras.
 - **Changelog**: `CHANGELOG.md` (Keep-a-Changelog). README links here;
   don't duplicate entries in the README.
 - **Test data**: `tests/fixtures/*.csv` loaded via `tests/conftest.py`
@@ -86,7 +88,7 @@ if behavior changes, change the free function and the wrapper picks it up.
 ## Local development
 
 ```bash
-pip install -e ".[dev,test,docs]"
+pip install -e . --group dev --group test --group docs
 pre-commit install
 
 # Verification commands (each must pass before committing)

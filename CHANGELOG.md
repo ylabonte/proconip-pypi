@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] — 2026-05-13
+
+### Changed
+
+- **License changed from AGPL-3.0-or-later to Apache-2.0.** The `LICENSE` file now contains the Apache License, Version 2.0. `pyproject.toml` SPDX expression and Trove classifier updated to match. No source-code changes; runtime behavior is unchanged. Downstream consumers should review the new license terms before upgrading.
+- **Development dependencies moved from `[project.optional-dependencies]` to `[dependency-groups]`** (PEP 735). The `dev`, `test`, and `docs` groups were never user-facing extras; they're for working *on* the package, not *with* it. They no longer appear as `Provides-Extra:` on PyPI. Local install: `pip install -e . --group dev --group test --group docs` (requires pip ≥ 25.1). CI workflows (`test.yml`, `lint.yml`, `docs.yml`) and `CONTRIBUTING.md` updated accordingly.
+
 ## [2.0.0] — 2026-05-10
 
 ### BREAKING CHANGES
@@ -166,7 +173,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release with data reading capabilities.
 
-[Unreleased]: https://github.com/ylabonte/proconip-pypi/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/ylabonte/proconip-pypi/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/ylabonte/proconip-pypi/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/ylabonte/proconip-pypi/compare/v1.4.7...v2.0.0
 [1.4.7]: https://github.com/ylabonte/proconip-pypi/compare/v1.4.6...v1.4.7
 [1.4.6]: https://github.com/ylabonte/proconip-pypi/compare/v1.4.5...v1.4.6

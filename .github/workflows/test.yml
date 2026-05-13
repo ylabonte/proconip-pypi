@@ -29,7 +29,7 @@ jobs:
           cache-dependency-path: "pyproject.toml"
 
       - name: Install package and test dependencies
-        run: pip install -e ".[test]"
+        run: pip install -e . --group test
 
       - name: Run tests with coverage
         run: pytest
