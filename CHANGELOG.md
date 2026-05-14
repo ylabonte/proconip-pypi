@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **License changed from AGPL-3.0-or-later to Apache-2.0.** The `LICENSE` file now contains the Apache License, Version 2.0. `pyproject.toml` SPDX expression and Trove classifier updated to match. No source-code changes; runtime behavior is unchanged. Downstream consumers should review the new license terms before upgrading.
+- **License changed from AGPL-3.0-or-later to MIT.** The `LICENSE` file now contains the MIT License. `pyproject.toml` SPDX expression and Trove classifier updated to match. No source-code changes; runtime behavior is unchanged. Downstream consumers should review the new license terms before upgrading.
 - **Development dependencies moved from `[project.optional-dependencies]` to `[dependency-groups]`** (PEP 735). The `dev`, `test`, and `docs` groups were never user-facing extras; they're for working *on* the package, not *with* it. They no longer appear as `Provides-Extra:` on PyPI. Local install: `pip install -e . --group dev --group test --group docs` (requires pip ≥ 25.1). CI workflows (`test.yml`, `lint.yml`, `docs.yml`) and `CONTRIBUTING.md` updated accordingly.
 
 ## [2.0.0] — 2026-05-10
