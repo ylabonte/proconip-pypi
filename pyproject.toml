@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "Async Python library for interacting with the ProCon.IP pool controller."
 readme = "README.md"
 requires-python = ">=3.13"
-license = "Apache-2.0"
+license = "MIT"
 license-files = ["LICENSE"]
 authors = [
   { name = "Yannic Labonte", email = "yannic.labonte@gmail.com" },
@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Framework :: AsyncIO",
     "Typing :: Typed",
-    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.13",
