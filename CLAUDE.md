@@ -80,7 +80,11 @@ if behavior changes, change the free function and the wrapper picks it up.
   (`dev`, `test`, `docs`). Installed with `pip install --group <name>`
   (requires pip ≥ 25.1). There are no `requirements*.txt` files and no
   `[project.optional-dependencies]` — these aren't user-facing extras.
-- **Changelog**: `CHANGELOG.md` (Keep-a-Changelog). README links here;
+- **Changelog**: `CHANGELOG.md`. From v2.2.0 onward, entries are managed by
+  [changesets](https://github.com/changesets/changesets) — every PR that needs
+  release notes must include a `.changeset/<name>.md` file (run
+  `pnpm changeset` to create one interactively). Earlier entries (v2.1.0 and
+  below) follow Keep-a-Changelog and stay as-is. README links here;
   don't duplicate entries in the README.
 - **Test data**: `tests/fixtures/*.csv` loaded via `tests/conftest.py`
   fixtures. Don't inline test CSVs into test functions.
@@ -108,9 +112,10 @@ mkdocs build --strict               # full doc build (CI parity)
 | `test.yml` | `pytest` with coverage; uploads `coverage.xml` artifact |
 | `codeql.yml` | Security scan with `security-extended,security-and-quality` |
 | `docs.yml` | MkDocs build + deploy to GitHub Pages |
-| `python-publish.yml` | Trusted Publishing (OIDC) on release; `needs: [test, lint]` |
-| `release-drafter.yml` | Auto-drafts release notes from PR labels |
-| `automerge.yml` | Auto-merge dependabot PRs (squash) |
+| `release.yml` | Changesets-driven release: opens "Version Packages" PR; on merge, tags + creates GitHub Release. App-authenticated so it can trigger downstream workflows. |
+| `python-publish.yml` | Trusted Publishing (OIDC) on `release: published`; `needs: [test, lint]` |
+| `update-actions.yml` | Weekly + on-demand `ylabonte/github-actions-updater@v1` run; opens `chore/update-github-actions` PR when actions are outdated |
+| `enable-auto-merge.yml` | Auto-merges PRs from `dependabot[bot]` / `github-actions[bot]` (rebase). Human PRs and the changesets "Version Packages" PR are excluded. |
 
 ## Common pitfalls (don't repeat these)
 
@@ -131,8 +136,29 @@ mkdocs build --strict               # full doc build (CI parity)
 
 ## Release flow
 
-1. Land changes on a feature branch; PR into `main`. CI must be green.
-2. After merge, tag the release: `git tag vX.Y.Z && git push --tags`.
-3. Create a GitHub Release from the tag (release-drafter pre-fills notes).
-4. `python-publish.yml` fires: tests + lint pass → Trusted Publishing publishes
-   to PyPI with attestations. No long-lived API token in use.
+Changesets-driven. No manual tagging or release creation.
+
+1. While working on a feature/fix branch, run `pnpm changeset` and pick the
+   bump type (patch/minor/major). It writes a `.changeset/<name>.md` file —
+   commit it alongside your code. PRs without a changeset are fine for
+   docs/CI-only changes that don't warrant release notes.
+2. PR into `main`. CI (`lint`, `test`, `codeql`, `docs`) must be green; merge.
+3. On merge to `main`, `release.yml` runs `changesets/action@v1`:
+   - If any pending `.changeset/*.md` files exist, it opens (or updates) a
+     **"Version Packages" PR** that bumps `package.json` and prepends the new
+     CHANGELOG section.
+   - If that "Version Packages" PR is the one being merged, it instead:
+     creates the exact-version git tag (e.g. `v2.2.0`), runs `pnpm release`
+     (= `changeset publish` — no-op npm push since the package is private),
+     and creates the GitHub Release with the CHANGELOG section as notes.
+4. The Release-published event triggers `python-publish.yml`: tests + lint
+   pass → Trusted Publishing (OIDC) pushes to PyPI with attestations. No
+   long-lived API token in use.
+
+**Auth note**: `release.yml` authenticates as a GitHub App
+(`RELEASE_APP_CLIENT_ID` + `RELEASE_APP_PRIVATE_KEY` repo secrets) rather
+than using the default `GITHUB_TOKEN`. This is required so that the tag /
+Release it creates can trigger the downstream `python-publish.yml` workflow
+(workflows-triggering-workflows is disabled for the default token by
+design). If `python-publish.yml` ever stops firing automatically, check that
+the App is still installed and the secrets are present.

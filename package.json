@@ -1,0 +1,14 @@
+{
+  "name": "proconip-release-meta",
+  "version": "2.1.0",
+  "private": true,
+  "description": "Procedural release metadata for proconip-pypi. Not published to npm; exists only to drive changesets-based versioning and CHANGELOG generation. The actual Python package lives in src/proconip/ and is published to PyPI via hatch-vcs + Trusted Publishing.",
+  "license": "MIT",
+  "scripts": {
+    "release": "changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.31.0"
+  },
+  "packageManager": "pnpm@10.16.0"
+}
