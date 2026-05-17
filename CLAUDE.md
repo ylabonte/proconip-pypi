@@ -118,7 +118,6 @@ mkdocs build --strict               # full doc build (CI parity)
 | `release.yml` | release-please: opens "chore: release X.Y.Z" PR from Conventional Commits; on merge, tags + creates GitHub Release. App-authenticated so it can trigger downstream workflows. |
 | `python-publish.yml` | Trusted Publishing (OIDC) on `release: published`; `needs: [test, lint]` |
 | `update-actions.yml` | Weekly + on-demand `ylabonte/github-actions-updater@v1` run; opens `chore/update-github-actions` PR when actions are outdated |
-| `enable-auto-merge.yml` | Auto-merges PRs from `dependabot[bot]` / `github-actions[bot]` (rebase). Human PRs and the release-please "release PR" are excluded. |
 
 ## Common pitfalls (don't repeat these)
 
