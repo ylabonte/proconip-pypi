@@ -142,3 +142,6 @@ src/proconip/_version.py
 # mkdocs build output
 site/
 _site/
+
+# Node.js (used only for changesets-driven release tooling)
+node_modules/

@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      # Authenticate as our GitHub App so that the tags / Release that
+      # changesets/action creates are App-authored. The default GITHUB_TOKEN
+      # cannot trigger downstream workflows (e.g. python-publish.yml on
+      # `release: published`); an App token can.
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      # Pass the App token to checkout so the credential persisted into git
+      # config is the App's, not the default GITHUB_TOKEN. `git push` from
+      # changesets/action then runs as the App.
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Create release PR or publish
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          # `pnpm release` = `changeset publish` — for our private package
+          # this skips the npm push but still creates the exact-version git
+          # tag (e.g. v2.2.0). The action then creates the GitHub Release,
+          # which triggers python-publish.yml.
+          publish: pnpm release
+          version: pnpm exec changeset version
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
