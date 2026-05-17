@@ -80,8 +80,15 @@ if behavior changes, change the free function and the wrapper picks it up.
   (`dev`, `test`, `docs`). Installed with `pip install --group <name>`
   (requires pip ≥ 25.1). There are no `requirements*.txt` files and no
   `[project.optional-dependencies]` — these aren't user-facing extras.
-- **Changelog**: `CHANGELOG.md` (Keep-a-Changelog). README links here;
-  don't duplicate entries in the README.
+- **Changelog**: `CHANGELOG.md`. From v2.2.0 onward, entries are generated
+  by [release-please](https://github.com/googleapis/release-please) from
+  Conventional Commits messages on `main` — **don't hand-edit CHANGELOG.md
+  for unreleased work**. Earlier entries (v2.1.0 and below) follow
+  Keep-a-Changelog and stay as-is. README links here; don't duplicate.
+- **Release version source-of-truth**: still git tags (read by hatch-vcs
+  at build time). release-please also tracks the current version in
+  `.release-please-manifest.json` for its own bookkeeping — that file
+  is the only thing release-please updates besides `CHANGELOG.md`.
 - **Test data**: `tests/fixtures/*.csv` loaded via `tests/conftest.py`
   fixtures. Don't inline test CSVs into test functions.
 
@@ -108,9 +115,10 @@ mkdocs build --strict               # full doc build (CI parity)
 | `test.yml` | `pytest` with coverage; uploads `coverage.xml` artifact |
 | `codeql.yml` | Security scan with `security-extended,security-and-quality` |
 | `docs.yml` | MkDocs build + deploy to GitHub Pages |
-| `python-publish.yml` | Trusted Publishing (OIDC) on release; `needs: [test, lint]` |
-| `release-drafter.yml` | Auto-drafts release notes from PR labels |
-| `automerge.yml` | Auto-merge dependabot PRs (squash) |
+| `release.yml` | release-please: opens "chore: release X.Y.Z" PR from Conventional Commits; on merge, tags + creates GitHub Release. App-authenticated so it can trigger downstream workflows. |
+| `python-publish.yml` | Trusted Publishing (OIDC) on `release: published`; `needs: [test, lint]` |
+| `update-actions.yml` | Weekly + on-demand `ylabonte/github-actions-updater@v1` run; opens `chore/update-github-actions` PR when actions are outdated |
+| `enable-auto-merge.yml` | Auto-merges PRs from `dependabot[bot]` / `github-actions[bot]` (rebase). Human PRs and the release-please "release PR" are excluded. |
 
 ## Common pitfalls (don't repeat these)
 
@@ -131,8 +139,31 @@ mkdocs build --strict               # full doc build (CI parity)
 
 ## Release flow
 
-1. Land changes on a feature branch; PR into `main`. CI must be green.
-2. After merge, tag the release: `git tag vX.Y.Z && git push --tags`.
-3. Create a GitHub Release from the tag (release-drafter pre-fills notes).
-4. `python-publish.yml` fires: tests + lint pass → Trusted Publishing publishes
-   to PyPI with attestations. No long-lived API token in use.
+[release-please](https://github.com/googleapis/release-please)-driven. No
+manual tagging or release creation.
+
+1. Write commit messages in [Conventional Commits](https://www.conventionalcommits.org/)
+   format (`feat`, `fix`, `perf`, `docs`, `chore`, etc., with optional scope:
+   `fix(devcontainer): ...`). The type determines the bump:
+   - `feat` → minor, `fix`/`perf`/`revert` → patch, anything with `!` or a
+     `BREAKING CHANGE:` footer → major, `docs`/`chore`/`refactor`/`test`/
+     `build`/`ci` → no bump (some appear in changelog, see
+     `.release-please-config.json` for the mapping).
+2. PR into `main`. CI (`lint`, `test`, `codeql`, `docs`) must be green; merge.
+3. On merge to `main`, `release.yml` runs `release-please-action@v4`:
+   - If commits since the last tag include any bump-triggering types, it
+     opens (or updates) a **"chore: release X.Y.Z" PR** that updates
+     `CHANGELOG.md` and `.release-please-manifest.json`.
+   - If that release PR is the one being merged, it instead creates the
+     exact-version git tag (e.g. `v2.2.0`) and the GitHub Release with the
+     CHANGELOG section as notes.
+4. The Release-published event triggers `python-publish.yml`: tests + lint
+   pass → Trusted Publishing (OIDC) pushes to PyPI with attestations.
+
+**Auth note**: `release.yml` authenticates as a GitHub App
+(`RELEASE_APP_CLIENT_ID` + `RELEASE_APP_PRIVATE_KEY` repo secrets) rather
+than using the default `GITHUB_TOKEN`. This is required so that the tag /
+Release it creates can trigger the downstream `python-publish.yml` workflow
+(workflows-triggering-workflows is disabled for the default token by
+design). If `python-publish.yml` ever stops firing automatically, check
+that the App is still installed and the secrets are present.
