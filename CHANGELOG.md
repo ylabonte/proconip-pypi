@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1](https://github.com/ylabonte/proconip-pypi/compare/v2.1.0...v2.1.1) (2026-05-19)
+
+
+### Bug Fixes
+
+* **deps:** revert mechanical aiohttp/yarl floor bump from [#73](https://github.com/ylabonte/proconip-pypi/issues/73) ([5d38010](https://github.com/ylabonte/proconip-pypi/commit/5d380101e881ef884ad19b93853ebf2d6954cd4d))
+
 ## [2.1.0] — 2026-05-14
 
 ### Changed
@@ -165,4 +172,3 @@
 ## [0.0.1] — 2023-04-23
 
 - Initial release with data reading capabilities.
-
