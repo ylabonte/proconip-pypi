@@ -11,11 +11,19 @@ updates:
     commit-message:
       prefix: "deps"
       prefix-development: "deps-dev"
+    # aiohttp & yarl are runtime deps with hand-set floors aligned to
+    # HA Core. Only allow major + security updates so Dependabot cannot
+    # silently tighten the floors again (regression: PR #73 / 9f4ca31).
+    ignore:
+      - dependency-name: "aiohttp"
+        update-types:
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
+      - dependency-name: "yarl"
+        update-types:
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
     groups:
-      aiohttp-stack:
-        patterns:
-          - "aiohttp"
-          - "yarl"
       dev-tools:
         patterns:
           - "ruff"
