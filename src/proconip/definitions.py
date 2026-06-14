@@ -55,14 +55,16 @@ RESET_ROOT_CAUSE = {
 }
 
 # Lookup table mapping NTP fault state codes to human labels. Values 1, 2 and
-# 4 are severity bit flags that may also appear in combination; the bit 65536
-# indicates "NTP synchronisation reached" and is set independently.
+# 4 are severity bit flags (the green/yellow/red GUI warning lamps) that may
+# also appear in combination. Bit 65536 (bit 16) is set independently and
+# indicates an NTP fault: when set, the controller has not received a time
+# from its NTP server (clear means the clock is in sync).
 NTP_FAULT_STATE = {
     0: "n.a.",
     1: "Logfile (GUI warning, green)",
     2: "Warning (GUI warning, yellow)",
     4: "Error (GUI warning, red)",
-    65536: "NTP available",
+    65536: "NTP fault (no time received)",
 }
 
 
@@ -534,7 +536,8 @@ class GetStateData:
     def ntp_fault_state(self) -> int:
         """Numeric NTP fault state. Decode with `NTP_FAULT_STATE` or
         `get_ntp_fault_state_as_str`. Bits 0/1/2 indicate severity (logfile,
-        warning, error); bit 16 indicates "NTP available"."""
+        warning, error); bit 16 set indicates an NTP fault — no time received
+        from the NTP server (clear means the clock is in sync)."""
         return self._ntp_fault_state
 
     @property
