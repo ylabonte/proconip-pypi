@@ -105,7 +105,7 @@ def test_get_state_ntp_fault_state(get_state_data: GetStateData) -> None:
         (1, "Logfile (GUI warning, green)"),
         (2, "Warning (GUI warning, yellow)"),
         (4, "Error (GUI warning, red)"),
-        (65536, "NTP available"),
+        (65536, "NTP fault (no time received)"),
         # composite: bits 1+2 → highest = 2
         (3, "Warning (GUI warning, yellow)"),
         # composite: bits 1+4 → highest = 4
