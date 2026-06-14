@@ -11,6 +11,7 @@ except ImportError:  # pragma: no cover
         __version__ = "0.0.0.dev0"
 
 from .api import (
+    DIGITAL_INPUT_COUNT,
     BadCredentialsException,
     BadStatusCodeException,
     DigitalInputControl,
@@ -77,6 +78,7 @@ __all__ = [
     # enums
     "DosageTarget",
     # constants
+    "DIGITAL_INPUT_COUNT",
     "EXTERNAL_RELAY_ID_OFFSET",
     "CATEGORY_TIME",
     "CATEGORY_ANALOG",

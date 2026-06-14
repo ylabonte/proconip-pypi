@@ -336,6 +336,12 @@ async def test_trigger_digital_input_releases_on_cancel(config: ConfigObject) ->
     assert [p.kwargs["data"] for p in posts] == ["IO=1&WEBIO=1", "IO=0&WEBIO=1"]
 
 
+def test_digital_input_count_is_exported_from_package() -> None:
+    from proconip import DIGITAL_INPUT_COUNT
+
+    assert DIGITAL_INPUT_COUNT == 4
+
+
 # ---------------------------------------------------------------------------
 # OO class wrappers
 # ---------------------------------------------------------------------------
