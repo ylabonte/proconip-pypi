@@ -441,7 +441,10 @@ class DigitalInput(DataObject):
         """Bit for this input in the WEBIO ``IO`` field (``1 << category_id``).
 
         The four digital inputs occupy bits 0–3, so this returns 1, 2, 4, or 8.
-        `async_trigger_digital_input` sends ``IO=<mask>`` to pulse the input.
+        To *trigger* an input, pass its ``category_id`` to
+        `async_trigger_digital_input` (which derives the same mask itself); use
+        this method when assembling an ``IO`` payload for a manual
+        `async_post_usrcfg_cgi` write.
         """
         return 1 << self._category_id
 
