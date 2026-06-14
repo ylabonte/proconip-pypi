@@ -897,6 +897,7 @@ class DmxControl:
 
 
 DIGITAL_INPUT_COUNT = 4
+DIGITAL_INPUT_PULSE_SECONDS = 0.6
 
 
 async def async_trigger_digital_input(
@@ -904,13 +905,16 @@ async def async_trigger_digital_input(
     config: ConfigObject,
     digital_input_id: int,
     timeout: float = 10.0,
+    hold_seconds: float = DIGITAL_INPUT_PULSE_SECONDS,
 ) -> str:
     """Trigger (momentarily pulse) a digital input via the WEBIO ``IO`` field.
 
     The controller's web UI exposes each digital input as a push button: it
-    sets the input's bit, then immediately clears it. This sends the same two
-    `/usrcfg.cgi` writes back-to-back — ``IO=<mask>&WEBIO=1`` (press) followed
-    by ``IO=0&WEBIO=1`` (release) — where ``mask = 1 << digital_input_id``.
+    sets the input's bit, waits, then clears it. This sends the same two
+    `/usrcfg.cgi` writes — ``IO=<mask>&WEBIO=1`` (press) then, after
+    ``hold_seconds``, ``IO=0&WEBIO=1`` (release) — where
+    ``mask = 1 << digital_input_id``. The hold mirrors the web UI (~600ms) so
+    the controller reliably registers the pulse.
 
     Unlike relay switching, no `GetStateData` snapshot is needed: the ``IO``
     field is written directly rather than read-modify-written.
@@ -921,6 +925,8 @@ async def async_trigger_digital_input(
         digital_input_id: Zero-based digital input index (0–3).
         timeout: Per-request timeout in seconds, applied to each of the two
             POSTs.
+        hold_seconds: Seconds to hold the input HIGH between the press and
+            release POSTs. Defaults to the web UI's ~600ms.
 
     Returns:
         The raw response body returned by the release POST.
@@ -943,6 +949,7 @@ async def async_trigger_digital_input(
         payload=f"IO={mask}&WEBIO=1",
         timeout=timeout,
     )
+    await asyncio.sleep(hold_seconds)
     return await async_post_usrcfg_cgi(
         client_session=client_session,
         config=config,
@@ -987,13 +994,20 @@ class DigitalInputControl:
         self.config = config
         self.timeout = timeout
 
-    async def async_trigger(self, digital_input_id: int, timeout: float | None = None) -> str:
+    async def async_trigger(
+        self,
+        digital_input_id: int,
+        timeout: float | None = None,
+        hold_seconds: float = DIGITAL_INPUT_PULSE_SECONDS,
+    ) -> str:
         """Trigger the digital input identified by ``digital_input_id``.
 
         Args:
             digital_input_id: Zero-based digital input index (0–3).
             timeout: Override for this call only. If ``None``, the timeout
                 bound in `__init__` is used.
+            hold_seconds: Seconds to hold the input HIGH between press and
+                release. Defaults to the web UI's ~600ms.
 
         See `async_trigger_digital_input` (the free function) for the full
         description of behavior and raised exceptions.
@@ -1003,4 +1017,5 @@ class DigitalInputControl:
             config=self.config,
             digital_input_id=digital_input_id,
             timeout=self.timeout if timeout is None else timeout,
+            hold_seconds=hold_seconds,
         )

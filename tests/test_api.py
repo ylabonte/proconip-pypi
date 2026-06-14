@@ -1,5 +1,7 @@
 """Tests for the API module — HTTP layer, error mapping, and class wrappers."""
 
+from unittest.mock import patch
+
 import aiohttp
 import pytest
 from aioresponses import aioresponses
@@ -256,7 +258,9 @@ async def test_trigger_digital_input_sends_posts(
         m.post(USRCFG_URL, body="press-ok", status=200)
         m.post(USRCFG_URL, body="release-ok", status=200)
         async with aiohttp.ClientSession() as session:
-            result = await async_trigger_digital_input(session, config, digital_input_id)
+            result = await async_trigger_digital_input(
+                session, config, digital_input_id, hold_seconds=0
+            )
     posts = _usrcfg_posts(m)
     assert len(posts) == 2
     assert posts[0].kwargs["data"] == f"IO={expected_mask}&WEBIO=1"
@@ -282,6 +286,32 @@ async def test_trigger_digital_input_401_raises_bad_credentials(config: ConfigOb
         async with aiohttp.ClientSession() as session:
             with pytest.raises(BadCredentialsException):
                 await async_trigger_digital_input(session, config, 0)
+
+
+async def test_trigger_digital_input_holds_high_between_posts(config: ConfigObject) -> None:
+    """By default the input is held HIGH ~600ms between press and release.
+
+    Mirrors the controller's web UI, which waits before clearing the bit.
+    asyncio.sleep is patched so the test stays fast while proving the hold
+    happens *between* the two POSTs (one POST recorded when sleep fires).
+    """
+    posts_at_sleep: list[int] = []
+
+    async def record_sleep(delay: float) -> None:
+        posts_at_sleep.append(len(_usrcfg_posts(m)))
+        assert delay == 0.6
+
+    with aioresponses() as m:
+        m.post(USRCFG_URL, body="press-ok", status=200)
+        m.post(USRCFG_URL, body="release-ok", status=200)
+        with patch("proconip.api.asyncio.sleep", side_effect=record_sleep):
+            async with aiohttp.ClientSession() as session:
+                result = await async_trigger_digital_input(session, config, 0)
+
+    assert result == "release-ok"
+    assert len(_usrcfg_posts(m)) == 2
+    # sleep fired exactly once, after the press POST and before the release.
+    assert posts_at_sleep == [1]
 
 
 # ---------------------------------------------------------------------------
@@ -356,7 +386,7 @@ async def test_digital_input_control_class(config: ConfigObject) -> None:
         m.post(USRCFG_URL, body="release-ok", status=200)
         async with aiohttp.ClientSession() as session:
             dic = DigitalInputControl(session, config)
-            result = await dic.async_trigger(2)
+            result = await dic.async_trigger(2, hold_seconds=0)
     posts = _usrcfg_posts(m)
     assert [p.kwargs["data"] for p in posts] == ["IO=4&WEBIO=1", "IO=0&WEBIO=1"]
     assert result == "release-ok"
