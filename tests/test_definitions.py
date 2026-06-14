@@ -16,6 +16,7 @@ from proconip.definitions import (
     BadRelayException,
     ConfigObject,
     DataObject,
+    DigitalInput,
     DmxChannelData,
     GetDmxData,
     GetStateData,
@@ -199,6 +200,16 @@ def test_digital_input_objects(get_state_data: GetStateData) -> None:
         assert obj.column == idx + 24
 
 
+def test_digital_inputs(get_state_data: GetStateData) -> None:
+    inputs = get_state_data.digital_inputs()
+    assert len(inputs) == 4
+    for idx, digital_input in enumerate(inputs):
+        assert isinstance(digital_input, DigitalInput)
+        assert digital_input.category == CATEGORY_DIGITAL_INPUT
+        assert digital_input.category_id == idx
+        assert digital_input.column == idx + 24
+
+
 def test_external_relay_objects(get_state_data: GetStateData) -> None:
     objs = get_state_data.external_relay_objects
     assert len(objs) == 8
@@ -325,6 +336,38 @@ def test_relay_is_off(get_state_data: GetStateData) -> None:
 def test_relay_str(get_state_data: GetStateData) -> None:
     relay = get_state_data.get_relay(0)
     assert "Terassenlicht" in str(relay)
+
+
+# ---------------------------------------------------------------------------
+# DigitalInput
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("digital_input_id", "expected_mask"),
+    [(0, 1), (1, 2), (2, 4), (3, 8)],
+)
+def test_digital_input_get_bit_mask(
+    get_state_data: GetStateData, digital_input_id: int, expected_mask: int
+) -> None:
+    digital_input = get_state_data.digital_inputs()[digital_input_id]
+    assert digital_input.get_bit_mask() == expected_mask
+
+
+def test_digital_input_value_not_double_applied() -> None:
+    """DigitalInput must apply offset+gain exactly once, like Relay.
+
+    Mirrors `test_relay_value_not_double_applied`: a non-trivial offset would
+    expose a double-application bug. column 24 is the first digital input.
+    """
+    obj = DataObject(column=24, name="test", unit="--", offset=1.0, gain=1.0, value=1.0)
+    assert obj.value == pytest.approx(2.0)
+
+    digital_input = DigitalInput(obj)
+    assert digital_input.value == pytest.approx(2.0)
+    assert digital_input.raw_value == pytest.approx(1.0)
+    assert digital_input.category == CATEGORY_DIGITAL_INPUT
+    assert digital_input.category_id == 0
 
 
 # ---------------------------------------------------------------------------

@@ -409,6 +409,48 @@ class Relay(DataObject):
         return 1 << self._category_id
 
 
+class DigitalInput(DataObject):
+    """Typed view of a single digital input (CSV columns 24–27).
+
+    Construct one by passing the `DataObject` you got from
+    `GetStateData.digital_input_objects`; the column, name, calibration, and
+    raw value are copied across so the physical value is computed exactly once.
+    ``GetStateData.digital_inputs()`` is a shorthand that does this for you.
+
+    The wrapper exists so digital inputs can be *triggered* (not just read):
+    `get_bit_mask` yields the bit used in the controller's WEBIO ``IO`` field.
+    """
+
+    def __init__(self, data_object: DataObject):
+        """Wrap an existing digital-input `DataObject`.
+
+        Args:
+            data_object: A `DataObject` produced by parsing a `/GetState.csv`
+                response. It should be in the digital_input category, but no
+                check is enforced — passing another object yields a
+                `DigitalInput` whose `get_bit_mask` is meaningless.
+        """
+        super().__init__(
+            data_object.column,
+            data_object.name,
+            data_object.unit,
+            data_object.offset,
+            data_object.gain,
+            data_object.raw_value,  # pass raw value so offset+gain are applied exactly once
+        )
+
+    def get_bit_mask(self) -> int:
+        """Bit for this input in the WEBIO ``IO`` field (``1 << category_id``).
+
+        The four digital inputs occupy bits 0–3, so this returns 1, 2, 4, or 8.
+        To *trigger* an input, pass its ``category_id`` to
+        `async_trigger_digital_input` (which derives the same mask itself); use
+        this method when assembling an ``IO`` payload for a manual
+        `async_post_usrcfg_cgi` write.
+        """
+        return 1 << self._category_id
+
+
 class GetStateData:
     """Parsed representation of a single `/GetState.csv` response.
 
@@ -821,6 +863,14 @@ class GetStateData:
     def digital_input_objects(self) -> list[DataObject]:
         """The four digital inputs (columns 24–27), in column order."""
         return self._digital_input_objects
+
+    def digital_inputs(self) -> list[DigitalInput]:
+        """The four digital inputs as `DigitalInput` instances.
+
+        Equivalent to wrapping each entry in `digital_input_objects` with
+        `DigitalInput(...)`. Use these to get `get_bit_mask()` for triggering.
+        """
+        return [DigitalInput(obj) for obj in self._digital_input_objects]
 
     @property
     def external_relay_objects(self) -> list[DataObject]:
