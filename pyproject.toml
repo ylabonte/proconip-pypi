@@ -33,7 +33,17 @@ dependencies = [
 
 [dependency-groups]
 dev = ["ruff", "mypy", "pre-commit"]
-test = ["pytest", "pytest-asyncio", "pytest-cov", "aioresponses"]
+test = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "aioresponses",
+    # aioresponses 0.7.8 can't build mocked responses against aiohttp 3.14+
+    # (ClientResponse gained a required `stream_writer` kwarg), which breaks
+    # the whole test_api suite. Pin tests to the 3.13.x line HA Core ships.
+    # TODO: lift this cap once a compatible aioresponses release lands.
+    "aiohttp<3.14",
+]
 docs = [
     "mkdocs",
     "mkdocs-material",
