@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://github.com/ylabonte/proconip-pypi/compare/v2.1.2...v2.2.0) (2026-06-14)
+
+
+### Features
+
+* add digital input triggering via WEBIO ([#93](https://github.com/ylabonte/proconip-pypi/issues/93)) ([8c35420](https://github.com/ylabonte/proconip-pypi/commit/8c354202ded3bbe389d6a53c0059b78d14337b97))
+
 ## [2.1.2](https://github.com/ylabonte/proconip-pypi/compare/v2.1.1...v2.1.2) (2026-06-14)
 
 
