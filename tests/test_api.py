@@ -1,5 +1,6 @@
 """Tests for the API module — HTTP layer, error mapping, and class wrappers."""
 
+import asyncio
 from unittest.mock import patch
 
 import aiohttp
@@ -312,6 +313,27 @@ async def test_trigger_digital_input_holds_high_between_posts(config: ConfigObje
     assert len(_usrcfg_posts(m)) == 2
     # sleep fired exactly once, after the press POST and before the release.
     assert posts_at_sleep == [1]
+
+
+async def test_trigger_digital_input_releases_on_cancel(config: ConfigObject) -> None:
+    """A cancelled hold still attempts a best-effort release, then re-raises.
+
+    Otherwise a press would set the bit and the cancellation would leave the
+    input asserted HIGH with no release.
+    """
+
+    async def cancel_during_hold(delay: float) -> None:
+        raise asyncio.CancelledError
+
+    with aioresponses() as m:
+        m.post(USRCFG_URL, body="press-ok", status=200)
+        m.post(USRCFG_URL, body="release-ok", status=200)
+        with patch("proconip.api.asyncio.sleep", side_effect=cancel_during_hold):
+            async with aiohttp.ClientSession() as session:
+                with pytest.raises(asyncio.CancelledError):
+                    await async_trigger_digital_input(session, config, 0)
+    posts = _usrcfg_posts(m)
+    assert [p.kwargs["data"] for p in posts] == ["IO=1&WEBIO=1", "IO=0&WEBIO=1"]
 
 
 # ---------------------------------------------------------------------------

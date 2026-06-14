@@ -26,6 +26,7 @@ subclasses so callers can handle them uniformly.
 """
 
 import asyncio
+import contextlib
 import socket
 
 from aiohttp import (
@@ -919,6 +920,13 @@ async def async_trigger_digital_input(
     Unlike relay switching, no `GetStateData` snapshot is needed: the ``IO``
     field is written directly rather than read-modify-written.
 
+    Because the pulse is two separate writes, the release is not fully
+    guaranteed. If the hold is **cancelled** (e.g. the caller's task is shut
+    down), a best-effort release is attempted before the cancellation
+    propagates. If the **release POST itself fails** (timeout / network blip),
+    that error propagates and the input is left asserted HIGH until the next
+    write.
+
     Args:
         client_session: An open `aiohttp.ClientSession`.
         config: Controller configuration including base URL and credentials.
@@ -949,7 +957,20 @@ async def async_trigger_digital_input(
         payload=f"IO={mask}&WEBIO=1",
         timeout=timeout,
     )
-    await asyncio.sleep(hold_seconds)
+    try:
+        await asyncio.sleep(hold_seconds)
+    except asyncio.CancelledError:
+        # Best-effort release so a cancelled hold doesn't leave the input
+        # asserted HIGH. Networking inside a cancellation is awkward, so this
+        # is a best effort, not a guarantee.
+        with contextlib.suppress(Exception):
+            await async_post_usrcfg_cgi(
+                client_session=client_session,
+                config=config,
+                payload="IO=0&WEBIO=1",
+                timeout=timeout,
+            )
+        raise
     return await async_post_usrcfg_cgi(
         client_session=client_session,
         config=config,
