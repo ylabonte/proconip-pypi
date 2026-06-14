@@ -894,3 +894,113 @@ class DmxControl:
             dmx_states=data,
             timeout=self.timeout if timeout is None else timeout,
         )
+
+
+DIGITAL_INPUT_COUNT = 4
+
+
+async def async_trigger_digital_input(
+    client_session: ClientSession,
+    config: ConfigObject,
+    digital_input_id: int,
+    timeout: float = 10.0,
+) -> str:
+    """Trigger (momentarily pulse) a digital input via the WEBIO ``IO`` field.
+
+    The controller's web UI exposes each digital input as a push button: it
+    sets the input's bit, then immediately clears it. This sends the same two
+    `/usrcfg.cgi` writes back-to-back — ``IO=<mask>&WEBIO=1`` (press) followed
+    by ``IO=0&WEBIO=1`` (release) — where ``mask = 1 << digital_input_id``.
+
+    Unlike relay switching, no `GetStateData` snapshot is needed: the ``IO``
+    field is written directly rather than read-modify-written.
+
+    Args:
+        client_session: An open `aiohttp.ClientSession`.
+        config: Controller configuration including base URL and credentials.
+        digital_input_id: Zero-based digital input index (0–3).
+        timeout: Per-request timeout in seconds, applied to each of the two
+            POSTs.
+
+    Returns:
+        The raw response body returned by the release POST.
+
+    Raises:
+        ValueError: If ``digital_input_id`` is not in 0–3.
+        BadCredentialsException: On HTTP 401 or 403.
+        BadStatusCodeException: On any other 4xx or 5xx response.
+        TimeoutException: If an exchange exceeds ``timeout`` seconds.
+        ProconipApiException: For network-level errors.
+    """
+    if not 0 <= digital_input_id < DIGITAL_INPUT_COUNT:
+        raise ValueError(
+            f"digital_input_id must be in 0..{DIGITAL_INPUT_COUNT - 1}, got {digital_input_id}"
+        )
+    mask = 1 << digital_input_id
+    await async_post_usrcfg_cgi(
+        client_session=client_session,
+        config=config,
+        payload=f"IO={mask}&WEBIO=1",
+        timeout=timeout,
+    )
+    return await async_post_usrcfg_cgi(
+        client_session=client_session,
+        config=config,
+        payload="IO=0&WEBIO=1",
+        timeout=timeout,
+    )
+
+
+class DigitalInputControl:
+    """Convenience wrapper that binds a session and config for triggering inputs.
+
+    Construct once with your `aiohttp.ClientSession` and `ConfigObject`, then
+    pulse digital inputs by zero-based id (0–3) without repeating those
+    arguments each time.
+
+    The constructor also binds a default `timeout` for every call made via this
+    wrapper. Each method then accepts an optional per-call `timeout` that
+    overrides the bound default when supplied.
+
+    Example:
+        ```python
+        dic = DigitalInputControl(session, config)
+        await dic.async_trigger(0)  # pulse the first digital input
+        ```
+    """
+
+    def __init__(
+        self,
+        client_session: ClientSession,
+        config: ConfigObject,
+        timeout: float = 10.0,
+    ):
+        """Bind the session, config, and default per-request timeout.
+
+        Args:
+            client_session: An open `aiohttp.ClientSession`.
+            config: Controller configuration.
+            timeout: Default per-request timeout in seconds, used when a method
+                is called without its own ``timeout`` argument.
+        """
+        self.client_session = client_session
+        self.config = config
+        self.timeout = timeout
+
+    async def async_trigger(self, digital_input_id: int, timeout: float | None = None) -> str:
+        """Trigger the digital input identified by ``digital_input_id``.
+
+        Args:
+            digital_input_id: Zero-based digital input index (0–3).
+            timeout: Override for this call only. If ``None``, the timeout
+                bound in `__init__` is used.
+
+        See `async_trigger_digital_input` (the free function) for the full
+        description of behavior and raised exceptions.
+        """
+        return await async_trigger_digital_input(
+            client_session=self.client_session,
+            config=self.config,
+            digital_input_id=digital_input_id,
+            timeout=self.timeout if timeout is None else timeout,
+        )

@@ -7,6 +7,7 @@ from aioresponses import aioresponses
 from proconip.api import (
     BadCredentialsException,
     BadStatusCodeException,
+    DigitalInputControl,
     DmxControl,
     DosageControl,
     GetState,
@@ -22,6 +23,7 @@ from proconip.api import (
     async_start_dosage,
     async_switch_off,
     async_switch_on,
+    async_trigger_digital_input,
 )
 from proconip.definitions import ConfigObject, DosageTarget, GetDmxData, GetStateData
 
@@ -229,6 +231,60 @@ async def test_set_dmx_sends_post(config: ConfigObject, get_dmx_csv: str) -> Non
 
 
 # ---------------------------------------------------------------------------
+# async_trigger_digital_input
+# ---------------------------------------------------------------------------
+
+
+def _usrcfg_posts(m: aioresponses) -> list:
+    """Return the recorded POST calls to /usrcfg.cgi, in order."""
+    return [
+        call
+        for (method, url), calls in m.requests.items()
+        for call in calls
+        if method == "POST" and "usrcfg.cgi" in str(url)
+    ]
+
+
+@pytest.mark.parametrize(
+    ("digital_input_id", "expected_mask"),
+    [(0, 1), (1, 2), (2, 4), (3, 8)],
+)
+async def test_trigger_digital_input_sends_posts(
+    config: ConfigObject, digital_input_id: int, expected_mask: int
+) -> None:
+    with aioresponses() as m:
+        m.post(USRCFG_URL, body="press-ok", status=200)
+        m.post(USRCFG_URL, body="release-ok", status=200)
+        async with aiohttp.ClientSession() as session:
+            result = await async_trigger_digital_input(session, config, digital_input_id)
+    posts = _usrcfg_posts(m)
+    assert len(posts) == 2
+    assert posts[0].kwargs["data"] == f"IO={expected_mask}&WEBIO=1"
+    assert posts[1].kwargs["data"] == "IO=0&WEBIO=1"
+    # The function returns the *release* response body.
+    assert result == "release-ok"
+
+
+@pytest.mark.parametrize("digital_input_id", [-1, 4, 99])
+async def test_trigger_digital_input_invalid_id_raises(
+    config: ConfigObject, digital_input_id: int
+) -> None:
+    with aioresponses() as m:
+        async with aiohttp.ClientSession() as session:
+            with pytest.raises(ValueError):
+                await async_trigger_digital_input(session, config, digital_input_id)
+    assert _usrcfg_posts(m) == []
+
+
+async def test_trigger_digital_input_401_raises_bad_credentials(config: ConfigObject) -> None:
+    with aioresponses() as m:
+        m.post(USRCFG_URL, status=401)
+        async with aiohttp.ClientSession() as session:
+            with pytest.raises(BadCredentialsException):
+                await async_trigger_digital_input(session, config, 0)
+
+
+# ---------------------------------------------------------------------------
 # OO class wrappers
 # ---------------------------------------------------------------------------
 
@@ -292,6 +348,18 @@ async def test_dmx_control_class(config: ConfigObject, get_dmx_csv: str) -> None
             await dc.async_set(dmx)
     assert raw == SIMPLE_DMX_CSV
     assert isinstance(parsed, GetDmxData)
+
+
+async def test_digital_input_control_class(config: ConfigObject) -> None:
+    with aioresponses() as m:
+        m.post(USRCFG_URL, body="press-ok", status=200)
+        m.post(USRCFG_URL, body="release-ok", status=200)
+        async with aiohttp.ClientSession() as session:
+            dic = DigitalInputControl(session, config)
+            result = await dic.async_trigger(2)
+    posts = _usrcfg_posts(m)
+    assert [p.kwargs["data"] for p in posts] == ["IO=4&WEBIO=1", "IO=0&WEBIO=1"]
+    assert result == "release-ok"
 
 
 # ---------------------------------------------------------------------------

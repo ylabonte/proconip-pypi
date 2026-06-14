@@ -13,6 +13,7 @@ except ImportError:  # pragma: no cover
 from .api import (
     BadCredentialsException,
     BadStatusCodeException,
+    DigitalInputControl,
     DmxControl,
     DosageControl,
     GetState,
@@ -30,6 +31,7 @@ from .api import (
     async_start_dosage,
     async_switch_off,
     async_switch_on,
+    async_trigger_digital_input,
 )
 from .definitions import (
     CATEGORY_ANALOG,
@@ -45,6 +47,7 @@ from .definitions import (
     BadRelayException,
     ConfigObject,
     DataObject,
+    DigitalInput,
     DmxChannelData,
     DosageTarget,
     GetDmxData,
@@ -67,6 +70,7 @@ __all__ = [
     # data classes
     "DataObject",
     "Relay",
+    "DigitalInput",
     "GetStateData",
     "DmxChannelData",
     "GetDmxData",
@@ -88,6 +92,7 @@ __all__ = [
     "RelaySwitch",
     "DosageControl",
     "DmxControl",
+    "DigitalInputControl",
     # free async functions
     "async_get_raw_data",
     "async_get_raw_state",
@@ -100,4 +105,5 @@ __all__ = [
     "async_get_raw_dmx",
     "async_get_dmx",
     "async_set_dmx",
+    "async_trigger_digital_input",
 ]
