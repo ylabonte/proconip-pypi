@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.2](https://github.com/ylabonte/proconip-pypi/compare/v2.1.1...v2.1.2) (2026-06-14)
+
+
+### Bug Fixes
+
+* correct inverted NTP fault bit-16 label ([eecc9cd](https://github.com/ylabonte/proconip-pypi/commit/eecc9cd79f9598fc7a1b87f975c0f5eb41667bb2)), closes [#90](https://github.com/ylabonte/proconip-pypi/issues/90)
+
 ## [2.1.1](https://github.com/ylabonte/proconip-pypi/compare/v2.1.0...v2.1.1) (2026-05-19)
 
 
