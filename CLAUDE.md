@@ -19,7 +19,11 @@ classes that parse the controller's CSV responses.
   remain compatible with HA Core 2026.5 pins (`aiohttp==3.13.5`,
   `yarl==1.23.0`). Don't tighten them to `==` and don't drop the upper bounds
   without a major version bump.
-- **Tests**: pytest, pytest-asyncio (auto mode), pytest-cov, aioresponses.
+- **Tests**: pytest, pytest-asyncio (auto mode), pytest-cov. HTTP tests in
+  `tests/test_api.py` run against `FakeController`, a real in-process
+  aiohttp server (`aiohttp.test_utils.RawTestServer`) — no client-side
+  mocking library, so CI exercises the installed aiohttp end to end. (We
+  dropped `aioresponses` because it broke on aiohttp 3.14; see #94.)
 - **Lint + format**: `ruff` (lint and format). `black` is **not** used.
 - **Types**: `mypy` (strict on `src/`). The package is PEP 561 typed
   (`src/proconip/py.typed`).
