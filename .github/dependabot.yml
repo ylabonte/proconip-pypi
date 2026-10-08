@@ -30,7 +30,6 @@ updates:
           - "mypy"
           - "pre-commit"
           - "pytest*"
-          - "aioresponses"
       docs-tools:
         patterns:
           - "mkdocs*"

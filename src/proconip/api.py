@@ -26,11 +26,11 @@ subclasses so callers can handle them uniformly.
 """
 
 import asyncio
+import base64
 import contextlib
 import socket
 
 from aiohttp import (
-    BasicAuth,
     ClientError,
     ClientResponse,
     ClientSession,
@@ -84,6 +84,18 @@ class TimeoutException(ProconipApiException):
     """
 
 
+def _auth_headers(config: ConfigObject) -> dict[str, str]:
+    """Build the HTTP Basic ``Authorization`` header for the controller credentials.
+
+    Built by hand rather than via ``aiohttp.BasicAuth`` / ``auth=``, which
+    aiohttp 3.14 deprecates (removal in 4.0), while its replacement
+    ``aiohttp.encode_basic_auth`` doesn't exist on older supported versions.
+    Credentials are latin-1 encoded, matching ``BasicAuth``'s default.
+    """
+    credentials = f"{config.username}:{config.password}".encode("latin1")
+    return {"Authorization": "Basic " + base64.b64encode(credentials).decode("ascii")}
+
+
 async def _handle_response(response: ClientResponse) -> str:
     """Validate the response and return its body, mapping HTTP errors to typed exceptions."""
     if response.status in (401, 403):
@@ -130,10 +142,9 @@ async def async_get_raw_data(
         ProconipApiException: For DNS failures, connection resets, and other
             network-level errors.
     """
-    auth = BasicAuth(config.username, config.password)
     try:
         async with asyncio.timeout(timeout):
-            async with client_session.get(url, auth=auth) as response:
+            async with client_session.get(url, headers=_auth_headers(config)) as response:
                 return await _handle_response(response)
     except TimeoutError as exc:
         raise TimeoutException("API request timed out") from exc
@@ -300,15 +311,16 @@ async def async_post_usrcfg_cgi(
         ProconipApiException: For network-level errors.
     """
     url = URL(config.base_url).with_path(API_PATH_USRCFG)
-    auth = BasicAuth(config.username, config.password)
-    headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        **_auth_headers(config),
+    }
     try:
         async with asyncio.timeout(timeout):
             async with client_session.post(
                 url=url,
                 headers=headers,
                 data=payload,
-                auth=auth,
             ) as response:
                 return await _handle_response(response)
     except TimeoutError as exc:

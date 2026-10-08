@@ -148,8 +148,8 @@ async def manual_dosage_example():
     client_session = aiohttp.ClientSession()
     config = ConfigObject("http://192.168.2.3", "admin", "admin")
     dosage_control = DosageControl(client_session, config)
-    await dosage_control.async_chlorine_dosage(3600) # start for 1 hour
-    await dosage_control.async_ph_minus_dosage(60) # start for 1 minute
+    await dosage_control.async_chlorine_dosage(3600)  # start for 1 hour
+    await dosage_control.async_ph_minus_dosage(60)  # start for 1 minute
     await client_session.close()
 
 
@@ -173,13 +173,12 @@ async def dmx_example():
         print(f"{channel.name} before: {channel.value}")
         dmx_data.set(channel.index, (channel.value + 128) % 256)
         print(f"{channel.name} after: {dmx_data.get_value(channel.index)}")
-      
+
     await dmx_control.async_set(dmx_data)
     await client_session.close()
 
 
 asyncio.run(dmx_example())
-
 ```
 
 ## A brief description of the ProCon.IP pool controller

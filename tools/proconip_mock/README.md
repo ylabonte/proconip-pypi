@@ -65,6 +65,7 @@ Or point a real `proconip` client at it:
 import aiohttp
 from proconip import ConfigObject, async_get_state
 
+
 async def main() -> None:
     config = ConfigObject("http://localhost:8080", "admin", "admin")
     async with aiohttp.ClientSession() as session:

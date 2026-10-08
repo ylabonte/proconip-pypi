@@ -37,15 +37,11 @@ test = [
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
-    "aioresponses",
-    # aioresponses 0.7.8 can't build mocked responses against aiohttp 3.14+
-    # (ClientResponse gained a required `stream_writer` kwarg), which breaks
-    # the whole test_api suite. Pin tests to the 3.13.x line HA Core ships.
-    # TODO: lift this cap once a compatible aioresponses release lands.
-    "aiohttp<3.14",
 ]
 docs = [
-    "mkdocs",
+    # MkDocs 2.0 drops the plugin system and the theming that Material and
+    # mkdocstrings rely on, with no migration path — stay on 1.x.
+    "mkdocs<2",
     "mkdocs-material",
     "mkdocstrings[python]",
     "mkdocs-include-markdown-plugin",
