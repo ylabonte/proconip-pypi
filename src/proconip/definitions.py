@@ -585,7 +585,13 @@ class GetStateData:
     @property
     def config_other_enable(self) -> int:
         """Misc configuration flags. Use the `is_*_enabled` methods to query
-        individual bits (TCP/IP boost, SD card, DMX, …)."""
+        individual bits (TCP/IP boost, SD card, DMX, …).
+
+        Not every "Sonstiges" checkbox is mirrored here on current firmware:
+        on 1.7.6, bits 0 (TCP/IP boost), 1 (SD card) and 5 (high bus load)
+        were observed as 0 although those options were enabled, while bit 2
+        (DMX) tracked its checkbox exactly. Bits 3, 4, 6, 7 and 8 are
+        unverified on hardware."""
         return self._config_other_enable
 
     @property
@@ -749,15 +755,28 @@ class GetStateData:
         return NTP_FAULT_STATE[0]
 
     def is_tcpip_boost_enabled(self) -> bool:
-        """True if TCP/IP boost is enabled in the controller config (bit 0)."""
+        """True if bit 0 (TCP/IP boost) of `config_other_enable` is set.
+
+        Unreliable on current firmware: 1.7.6 was observed reporting this bit
+        as 0 while TCP/IP boost was enabled, so ``False`` doesn't prove the
+        feature is off.
+        """
         return self._config_other_enable & 1 == 1
 
     def is_sd_card_enabled(self) -> bool:
-        """True if SD card logging is enabled in the controller config (bit 1)."""
+        """True if bit 1 (SD card) of `config_other_enable` is set.
+
+        Unreliable on current firmware: 1.7.6 was observed reporting this bit
+        as 0 while the SD card was enabled, so ``False`` doesn't prove the
+        feature is off.
+        """
         return self._config_other_enable & 2 == 2
 
     def is_dmx_enabled(self) -> bool:
-        """True if DMX output is enabled in the controller config (bit 2)."""
+        """True if DMX output is enabled in the controller config (bit 2).
+
+        Verified on firmware 1.7.6: the bit follows the "DMX512 aktiv" checkbox.
+        """
         return self._config_other_enable & 4 == 4
 
     def is_avatar_enabled(self) -> bool:
@@ -774,7 +793,12 @@ class GetStateData:
         return self._config_other_enable & 16 == 16
 
     def is_high_bus_load_enabled(self) -> bool:
-        """True if high bus load mode is enabled in the controller config (bit 5)."""
+        """True if bit 5 (high bus load, 1-Wire) of `config_other_enable` is set.
+
+        Unreliable on current firmware: 1.7.6 was observed reporting this bit
+        as 0 while high bus load was enabled, so ``False`` doesn't prove the
+        feature is off.
+        """
         return self._config_other_enable & 32 == 32
 
     def is_flow_sensor_enabled(self) -> bool:
