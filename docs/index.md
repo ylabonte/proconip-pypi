@@ -23,6 +23,7 @@ import asyncio
 import aiohttp
 from proconip import ConfigObject, GetState
 
+
 async def main() -> None:
     config = ConfigObject("http://192.168.2.3", "admin", "admin")
     async with aiohttp.ClientSession() as session:
@@ -33,6 +34,7 @@ async def main() -> None:
     print(f"pH:    {state.ph_electrode.display_value}")
     for relay in (r for r in state.relays() if r.name != "n.a."):
         print(f"{relay.name}: {relay.display_value}")
+
 
 asyncio.run(main())
 ```
