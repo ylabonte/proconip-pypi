@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.1](https://github.com/ylabonte/proconip-pypi/compare/v2.2.0...v2.2.1) (2026-10-08)
+
+
+### Bug Fixes
+
+* support aiohttp 3.14 without deprecation warnings; test against it ([#94](https://github.com/ylabonte/proconip-pypi/issues/94), [#97](https://github.com/ylabonte/proconip-pypi/issues/97)) ([#98](https://github.com/ylabonte/proconip-pypi/issues/98)) ([87dcc3d](https://github.com/ylabonte/proconip-pypi/commit/87dcc3d01ab2d5cae7fb826638086665f2076c7c))
+
 ## [2.2.0](https://github.com/ylabonte/proconip-pypi/compare/v2.1.2...v2.2.0) (2026-06-14)
 
 
