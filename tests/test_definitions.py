@@ -293,10 +293,15 @@ def test_is_electrolysis_object_marks_chlorine_columns_only(
     assert not state.is_electrolysis_object(state.analog_objects[0])
 
 
-def test_electrolysis_chlorine_values_are_cell_lifetime_and_production(
+def test_electrolysis_keeps_chlorine_columns_positional(
     get_state_electrolysis_data: GetStateData,
 ) -> None:
-    """Column 36 stays a percentage (cell lifetime), column 39 a daily amount."""
+    """Under electrolysis, columns 36/39 stay in the canister/consumption categories.
+
+    The ``%``/``g`` units and values below come from the synthesised
+    electrolysis fixture, not from observed controller output; the category
+    asserts are what this test pins.
+    """
     state = get_state_electrolysis_data
     assert state.chlorine_canister.unit == "%"
     assert state.chlorine_canister.value == pytest.approx(87.3)
