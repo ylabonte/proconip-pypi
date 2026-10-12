@@ -266,6 +266,51 @@ def test_get_dosage_relay(get_state_data: GetStateData) -> None:
     assert get_state_data.get_dosage_relay(get_state_data.analog_objects[0]) is None
 
 
+def test_is_electrolysis_object_false_for_liquid_chlorine(get_state_data: GetStateData) -> None:
+    assert not get_state_data.is_electrolysis_enabled()
+    for obj in get_state_data.canister_objects + get_state_data.consumption_objects:
+        assert not get_state_data.is_electrolysis_object(obj)
+
+
+def test_is_electrolysis_object_marks_chlorine_columns_only(
+    get_state_electrolysis_data: GetStateData,
+) -> None:
+    state = get_state_electrolysis_data
+    assert state.is_electrolysis_enabled()
+    assert state.is_chlorine_dosage_enabled()
+    assert state.is_electrolysis_object(state.chlorine_canister)
+    assert state.is_electrolysis_object(state.chlorine_consumption)
+    # pH canisters stay real canisters
+    for obj in (
+        state.ph_minus_canister,
+        state.ph_plus_canister,
+        state.ph_minus_consumption,
+        state.ph_plus_consumption,
+    ):
+        assert not state.is_electrolysis_object(obj)
+    # unrelated columns never qualify
+    assert not state.is_electrolysis_object(state.redox_electrode)
+    assert not state.is_electrolysis_object(state.analog_objects[0])
+
+
+def test_electrolysis_keeps_chlorine_columns_positional(
+    get_state_electrolysis_data: GetStateData,
+) -> None:
+    """Under electrolysis, columns 36/39 stay in the canister/consumption categories.
+
+    The ``%``/``g`` units and values below come from the synthesised
+    electrolysis fixture, not from observed controller output; the category
+    asserts are what this test pins.
+    """
+    state = get_state_electrolysis_data
+    assert state.chlorine_canister.unit == "%"
+    assert state.chlorine_canister.value == pytest.approx(87.3)
+    assert state.chlorine_canister.category == CATEGORY_CANISTER
+    assert state.chlorine_consumption.unit == "g"
+    assert state.chlorine_consumption.value == pytest.approx(412)
+    assert state.chlorine_consumption.category == CATEGORY_CONSUMPTION
+
+
 def test_is_dosage_relay_by_relay_object(get_state_data: GetStateData) -> None:
     dosage_relay = get_state_data.get_relay(5)  # chlorine dosage relay_id
     assert get_state_data.is_dosage_relay(relay_object=dosage_relay)

@@ -187,7 +187,10 @@ class DataObject:
                 temperature, ``16–23`` → relay, ``24–27`` → digital input,
                 ``28–35`` → external relay, ``36–38`` → canister, ``39–41`` →
                 consumption. Anything outside this range falls into a sentinel
-                "uncategorized" bucket.
+                "uncategorized" bucket. The category is purely positional: with
+                a salt-electrolysis cell, columns 36 and 39 still land in the
+                canister/consumption categories although they describe the
+                cell (see `GetStateData.is_electrolysis_object`).
             name: Sensor name as reported by the controller (e.g. ``"Redox"``).
             unit: Unit string (``"mV"``, ``"°C"``, ``"%"``, ``"--"``, …).
             offset: Calibration offset applied to ``value``.
@@ -620,7 +623,24 @@ class GetStateData:
         return self._dosage_control & 1 == 1
 
     def is_electrolysis_enabled(self) -> bool:
-        """True if electrolysis (saltwater) chlorination is enabled (bit 4)."""
+        """True if the chlorine supply is a salt-electrolysis cell (bit 4).
+
+        When set, the chlorine channel is not fed from a canister: the
+        chlorine "canister" reading (column 36) is the cell's remaining
+        lifetime / maintenance interval in percent, and the chlorine
+        "consumption" reading (column 39) is today's *calculated* chlorine
+        production. Use `is_electrolysis_object` to tell those two objects
+        apart from real canister readings.
+
+        Polarity evidence: the TRM labels bit 4 "Cl liquid || Elektrolysis",
+        naming both options without saying which value is which. A live
+        firmware 1.7.6 controller configured for liquid chlorine
+        (``rdxcntrl.ini`` ``DTYPE=0``, chlorine dosing on) reports
+        DOSAGE_CNTRL 257 (bits 0 and 8, bit 4 clear), as does the real capture
+        in the test fixtures. So bit 4 is the chlorine device-type selector,
+        and set = electrolysis is inferred, not observed; a real electrolysis
+        capture is still pending.
+        """
         return self._dosage_control & 16 == 16
 
     def is_ph_minus_dosage_enabled(self) -> bool:
@@ -650,6 +670,33 @@ class GetStateData:
         if col in (38, 41):
             return self.is_ph_plus_dosage_enabled()
         return False
+
+    def is_electrolysis_object(self, data_entity: DataObject) -> bool:
+        """Does this canister/consumption object describe a salt-electrolysis cell?
+
+        The controller reuses the chlorine canister columns for a salt
+        electrolysis setup instead of adding new ones. With electrolysis
+        enabled (see `is_electrolysis_enabled`):
+
+        - column 36 (`chlorine_canister`) is the cell's **remaining lifetime**
+          (or maintenance interval) in percent — the share of the configured
+          operating hours that is left, not a canister fill level;
+        - column 39 (`chlorine_consumption`) is **today's chlorine production**
+          calculated from the configured production rate, not a liquid
+          volume drawn from a canister.
+
+        Callers should label and present these objects accordingly (e.g. no
+        canister/volume wording). The pH- and pH+ columns are always real
+        canisters.
+
+        Args:
+            data_entity: Any `DataObject` from this state.
+
+        Returns:
+            True only for the chlorine canister (column 36) or chlorine
+            consumption (column 39) object while electrolysis is enabled.
+        """
+        return data_entity.column in (36, 39) and self.is_electrolysis_enabled()
 
     def get_dosage_relay(self, data_entity: DataObject) -> int | None:
         """Aggregated relay ID that handles the dosing for this canister/consumption entity.
@@ -912,20 +959,28 @@ class GetStateData:
 
     @property
     def canister_objects(self) -> list[DataObject]:
-        """The three canister fill-level readings (columns 36–38).
+        """The three canister remaining-content readings (columns 36–38), in percent.
 
         Order: chlorine, pH-, pH+. Convenience properties `chlorine_canister`,
         `ph_minus_canister`, and `ph_plus_canister` return individual entries.
+        The values are estimates the controller derives from pump runtime and
+        configured delivery rate. With a salt-electrolysis cell the chlorine
+        entry is the cell's remaining lifetime instead — check
+        `is_electrolysis_object`.
         """
         return self._canister_objects
 
     @property
     def consumption_objects(self) -> list[DataObject]:
-        """The three dosage consumption counters (columns 39–41).
+        """The three daily dosage amounts (columns 39–41).
 
         Order: chlorine, pH-, pH+. Convenience properties
         `chlorine_consumption`, `ph_minus_consumption`, and
-        `ph_plus_consumption` return individual entries.
+        `ph_plus_consumption` return individual entries. Each is the amount
+        dosed *today* (the controller resets it daily), in the unit the
+        controller reports (``ml``; the chlorine column may report ``g``). With a
+        salt-electrolysis cell the chlorine entry is today's calculated
+        chlorine production — check `is_electrolysis_object`.
         """
         return self._consumption_objects
 
@@ -941,32 +996,41 @@ class GetStateData:
 
     @property
     def chlorine_canister(self) -> DataObject:
-        """Chlorine canister fill level (column 36)."""
+        """Chlorine canister remaining content in percent (column 36).
+
+        With a salt-electrolysis cell (`is_electrolysis_enabled`) this is the
+        cell's remaining lifetime / maintenance interval in percent instead.
+        """
         return self._canister_objects[0]
 
     @property
     def ph_minus_canister(self) -> DataObject:
-        """pH- canister fill level (column 37)."""
+        """pH- canister remaining content in percent (column 37)."""
         return self._canister_objects[1]
 
     @property
     def ph_plus_canister(self) -> DataObject:
-        """pH+ canister fill level (column 38)."""
+        """pH+ canister remaining content in percent (column 38)."""
         return self._canister_objects[2]
 
     @property
     def chlorine_consumption(self) -> DataObject:
-        """Cumulative chlorine consumption counter (column 39)."""
+        """Chlorine dosed today (column 39), in ``ml`` or ``g``.
+
+        With a salt-electrolysis cell (`is_electrolysis_enabled`) this is
+        today's chlorine production calculated from the configured
+        production rate instead.
+        """
         return self._consumption_objects[0]
 
     @property
     def ph_minus_consumption(self) -> DataObject:
-        """Cumulative pH- consumption counter (column 40)."""
+        """pH- dosed today (column 40), in ``ml``."""
         return self._consumption_objects[1]
 
     @property
     def ph_plus_consumption(self) -> DataObject:
-        """Cumulative pH+ consumption counter (column 41)."""
+        """pH+ dosed today (column 41), in ``ml``."""
         return self._consumption_objects[2]
 
     @property
