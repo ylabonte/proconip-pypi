@@ -631,6 +631,15 @@ class GetStateData:
         "consumption" reading (column 39) is today's *calculated* chlorine
         production. Use `is_electrolysis_object` to tell those two objects
         apart from real canister readings.
+
+        Polarity evidence: the TRM labels bit 4 "Cl liquid || Elektrolysis",
+        naming both options without saying which value is which. A live
+        firmware 1.7.6 controller configured for liquid chlorine
+        (``rdxcntrl.ini`` ``DTYPE=0``, chlorine dosing on) reports
+        DOSAGE_CNTRL 257 (bits 0 and 8, bit 4 clear), as does the real capture
+        in the test fixtures. So bit 4 is the chlorine device-type selector,
+        and set = electrolysis is inferred, not observed; a real electrolysis
+        capture is still pending.
         """
         return self._dosage_control & 16 == 16
 
@@ -969,7 +978,7 @@ class GetStateData:
         `chlorine_consumption`, `ph_minus_consumption`, and
         `ph_plus_consumption` return individual entries. Each is the amount
         dosed *today* (the controller resets it daily), in the unit the
-        controller reports (``ml``, or ``g`` for chlorine). With a
+        controller reports (``ml``; the chlorine column may report ``g``). With a
         salt-electrolysis cell the chlorine entry is today's calculated
         chlorine production — check `is_electrolysis_object`.
         """
