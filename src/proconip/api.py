@@ -598,7 +598,9 @@ async def async_start_dosage(
     directly: it goes through the controller's own dosage logic, which the
     TRM ties to preconditions such as the dosage channel being enabled and
     the assigned filter pump running (a running dosage also stops when the
-    filter pump switches off). The protocol has no "dosage refused" response,
+    filter pump switches off). The TRM's daily maximum dosing amount may also
+    stop it: once the channel's daily amount is reached, the controller does
+    not dose any further. The protocol has no "dosage refused" response,
     so a successful HTTP exchange does not prove that dosing started; check
     the dosage relay state in `/GetState.csv` if you need to know.
 
@@ -610,6 +612,12 @@ async def async_start_dosage(
     `GetStateData.is_electrolysis_enabled`). This function passes the value
     through unchecked; how the controller treats values outside those
     limits is not documented.
+
+    The web UI also stores the duration as the channel's default before it
+    sends the command: it rewrites ``MDOSTIME`` in the channel's ``.ini``
+    (``usr/rdxcntrl.ini``, ``phcntrl.ini`` or ``phpcntrl.ini``) via
+    ``/usrcfg.cgi`` and pre-fills that value next time. This function sends
+    only the command and leaves that default untouched.
 
     Args:
         client_session: An open `aiohttp.ClientSession`.
