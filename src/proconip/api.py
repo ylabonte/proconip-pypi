@@ -615,7 +615,7 @@ async def async_start_dosage(
 
     The web UI also stores the duration as the channel's default before it
     sends the command: it rewrites ``MDOSTIME`` in the channel's ``.ini``
-    (``usr/rdxcntrl.ini``, ``phcntrl.ini`` or ``phpcntrl.ini``) via
+    (``usr/rdxcntrl.ini``, ``usr/phcntrl.ini`` or ``usr/phpcntrl.ini``) via
     ``/usrcfg.cgi`` and pre-fills that value next time. This function sends
     only the command and leaves that default untouched.
 
