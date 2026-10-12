@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.0](https://github.com/ylabonte/proconip-pypi/compare/v2.2.1...v2.3.0) (2026-10-12)
+
+
+### Features
+
+* flag the chlorine canister columns as cell data under electrolysis ([#100](https://github.com/ylabonte/proconip-pypi/issues/100)) ([27ca22a](https://github.com/ylabonte/proconip-pypi/commit/27ca22acb2e42e47647318713670ddd9f3938daf))
+
 ## [2.2.1](https://github.com/ylabonte/proconip-pypi/compare/v2.2.0...v2.2.1) (2026-10-08)
 
 
