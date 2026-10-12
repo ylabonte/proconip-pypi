@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.1](https://github.com/ylabonte/proconip-pypi/compare/v2.3.0...v2.3.1) (2026-10-12)
+
+
+### Documentation
+
+* confirm electrolysis bit polarity and document manual-dosage units/limits ([#102](https://github.com/ylabonte/proconip-pypi/issues/102)) ([cb44a11](https://github.com/ylabonte/proconip-pypi/commit/cb44a11336fc73bc9715f9ec12ecffeec8b8d16f))
+
 ## [2.3.0](https://github.com/ylabonte/proconip-pypi/compare/v2.2.1...v2.3.0) (2026-10-12)
 
 
