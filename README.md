@@ -137,6 +137,10 @@ asyncio.run(relay_switching_example())
 
 Manual dosage depends on the same factors as if started from the web interface
 of the pool control itself.
+Durations are always in seconds. The controller's web interface allows up to
+59:59 (3599 s) for liquid dosing and up to 23:59 hours (86340 s, whole minutes)
+for chlorine when a salt electrolysis cell is configured; the library passes
+the value through unchecked.
 
 ```python
 import asyncio
@@ -148,7 +152,7 @@ async def manual_dosage_example():
     client_session = aiohttp.ClientSession()
     config = ConfigObject("http://192.168.2.3", "admin", "admin")
     dosage_control = DosageControl(client_session, config)
-    await dosage_control.async_chlorine_dosage(3600)  # start for 1 hour
+    await dosage_control.async_chlorine_dosage(600)  # start for 10 minutes
     await dosage_control.async_ph_minus_dosage(60)  # start for 1 minute
     await client_session.close()
 
