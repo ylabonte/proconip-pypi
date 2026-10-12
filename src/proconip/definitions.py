@@ -632,14 +632,13 @@ class GetStateData:
         production. Use `is_electrolysis_object` to tell those two objects
         apart from real canister readings.
 
-        Polarity evidence: the TRM labels bit 4 "Cl liquid || Elektrolysis",
-        naming both options without saying which value is which. A live
-        firmware 1.7.6 controller configured for liquid chlorine
-        (``rdxcntrl.ini`` ``DTYPE=0``, chlorine dosing on) reports
-        DOSAGE_CNTRL 257 (bits 0 and 8, bit 4 clear), as does the real capture
-        in the test fixtures. So bit 4 is the chlorine device-type selector,
-        and set = electrolysis is inferred, not observed; a real electrolysis
-        capture is still pending.
+        Polarity: the TRM labels bit 4 "Cl liquid || Elektrolysis" without
+        saying which value is which. The controller's own web UI settles it
+        (``topleft.htm``, firmware 1.7.6): it decodes
+        ``rdx_canister_salt = (dos_cntr >> 4) & 0x01`` and shows
+        ``"Flüssig NaClO"`` for 0 and ``"Salz Elektrolyse"`` for 1. A live
+        liquid-chlorine controller (``rdxcntrl.ini`` ``DTYPE=0``) reports
+        DOSAGE_CNTRL 257 with bit 4 clear, consistent with that.
         """
         return self._dosage_control & 16 == 16
 

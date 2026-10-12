@@ -595,18 +595,37 @@ async def async_start_dosage(
     """Trigger a manual, time-limited dosage on the controller.
 
     Manual dosage is the safe alternative to switching a dosage relay on
-    directly: the controller still applies the same interlocks it uses for the
-    web UI (canister level, dosage enabled in config, redox/pH thresholds, …).
-    If those checks fail, the controller silently no-ops while still returning
-    HTTP 200 — there is no "dosage refused" error in the protocol.
+    directly: it goes through the controller's own dosage logic, which the
+    TRM ties to preconditions such as the dosage channel being enabled and
+    the assigned filter pump running (a running dosage also stops when the
+    filter pump switches off). The TRM's daily maximum dosing amount may also
+    stop it: once the channel's daily amount is reached, the controller does
+    not dose any further. The protocol has no "dosage refused" response,
+    so a successful HTTP exchange does not prove that dosing started; check
+    the dosage relay state in `/GetState.csv` if you need to know.
+
+    The duration is always sent in seconds, as the controller's web UI does
+    (``/Command.htm?MAN_DOSAGE=<target>,<seconds>``). That UI limits the
+    input to ``mm:ss`` up to 59:59 (3599 s) for liquid dosing (chlorine,
+    pH-, pH+) and to ``hh:mm`` up to 23:59 (86340 s, whole minutes) for
+    chlorine when a salt electrolysis cell is configured (see
+    `GetStateData.is_electrolysis_enabled`). This function passes the value
+    through unchecked; how the controller treats values outside those
+    limits is not documented.
+
+    The web UI also stores the duration as the channel's default before it
+    sends the command: it rewrites ``MDOSTIME`` in the channel's ``.ini``
+    (``usr/rdxcntrl.ini``, ``usr/phcntrl.ini`` or ``usr/phpcntrl.ini``) via
+    ``/usrcfg.cgi`` and pre-fills that value next time. This function sends
+    only the command and leaves that default untouched.
 
     Args:
         client_session: An open `aiohttp.ClientSession`.
         config: Controller configuration.
         dosage_target: Which dosing pump to engage (chlorine, pH-, or pH+).
-        dosage_duration: Run time in **seconds**. Allowed range depends on the
-            controller's own dosage configuration; values that exceed the
-            configured maximum are typically clamped silently by the device.
+        dosage_duration: Run time in **seconds**, in both liquid and
+            electrolysis mode. The web UI allows 0–3599 s for liquid dosing
+            and 0–86340 s (whole minutes) for chlorine electrolysis.
         timeout: Per-request timeout in seconds.
 
     Returns:
@@ -662,10 +681,12 @@ class DosageControl:
     async def async_chlorine_dosage(
         self, dosage_duration: int, timeout: float | None = None
     ) -> str:
-        """Run the chlorine dosage pump for ``dosage_duration`` seconds.
+        """Run the chlorine dosage pump (or electrolysis cell) for ``dosage_duration`` seconds.
 
         Args:
-            dosage_duration: Run time in seconds.
+            dosage_duration: Run time in seconds. The controller's web UI
+                allows up to 3599 s for liquid chlorine and up to 86340 s
+                (whole minutes) for a salt electrolysis cell.
             timeout: Override for this call only. If ``None``, the timeout
                 bound in `__init__` is used.
 
@@ -687,7 +708,8 @@ class DosageControl:
         """Run the pH- dosage pump for ``dosage_duration`` seconds.
 
         Args:
-            dosage_duration: Run time in seconds.
+            dosage_duration: Run time in seconds. The controller's web UI
+                allows up to 3599 s (59:59).
             timeout: Override for this call only. If ``None``, the timeout
                 bound in `__init__` is used.
 
@@ -707,7 +729,8 @@ class DosageControl:
         """Run the pH+ dosage pump for ``dosage_duration`` seconds.
 
         Args:
-            dosage_duration: Run time in seconds.
+            dosage_duration: Run time in seconds. The controller's web UI
+                allows up to 3599 s (59:59).
             timeout: Override for this call only. If ``None``, the timeout
                 bound in `__init__` is used.
 
